@@ -4,7 +4,7 @@
 
 # ecs-task-discovery
 
-[ecs-task-discovery](ecs-task-discovery) is a Go module that performs service discovery for ECS tasks.
+[ecs-task-discovery](https://github.com/udhos/ecs-task-discovery?tab=readme-ov-file) is a Go module that performs service discovery for ECS tasks.
 
 # Usage
 
