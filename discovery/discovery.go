@@ -132,7 +132,6 @@ func (d *Discovery) Run() {
 
 func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
 	if len(taskArns) == 0 {
-		slog.Error("ListTasks: empty")
 		return nil, nil
 	}
 	input := ecs.DescribeTasksInput{
@@ -153,19 +152,16 @@ func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
 		if len(t.Attachments) > 0 {
 			at := t.Attachments[0]
 			for _, kv := range at.Details {
-				key := aws.ToString(kv.Name)
-				if key == "privateIPv4Address" {
+				if key := aws.ToString(kv.Name); key == "privateIPv4Address" {
 					addr = aws.ToString(kv.Value)
+					break
 				}
 			}
 		}
 
-		slog.Debug("DescribeTasks",
-			"arn", aws.ToString(t.TaskArn),
-			"address", addr,
-			"healthStatus", t.HealthStatus,
-			"lastStatus", aws.ToString(t.LastStatus),
-		)
+		if addr == "" {
+			continue // missing address
+		}
 
 		tasks = append(tasks, Task{
 			ARN:          aws.ToString(t.TaskArn),
