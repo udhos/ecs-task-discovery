@@ -90,35 +90,50 @@ func (d *Discovery) Run() {
 
 	for {
 
+		begin := time.Now()
+
 		var tasks []Task
+		var errored bool
 
 		for {
 			out, errList := d.clientEcs.ListTasks(context.TODO(), &input)
 			if errList == nil {
 				slog.Info(fmt.Sprintf("ListTasks: found %d of maxResults=%d tasks",
 					len(out.TaskArns), maxResults))
-				tasks = append(tasks, d.describeTasks(out.TaskArns)...)
+				list, errDesc := d.describeTasks(out.TaskArns)
+				if errDesc != nil {
+					slog.Error(fmt.Sprintf("DescribeTasks: error: %v", errDesc))
+					errored = true // do not report partial result
+					break          // do not hammer ListTasks on error
+				}
+				tasks = append(tasks, list...)
 				input.NextToken = out.NextToken
 				if out.NextToken == nil {
-					break
+					break // finished
 				}
 				input.NextToken = out.NextToken
 			} else {
 				slog.Error(fmt.Sprintf("ListTasks: error: %v", errList))
+				errored = true // do not report partial result
+				break          // do not hammer ListTasks on error
 			}
 		}
 
-		d.options.Callback(tasks) // deliver result
+		slog.Info(fmt.Sprintf("Run: tasksFound=%d elapsed=%v", len(tasks), time.Since(begin)))
 
-		slog.Info(fmt.Sprintf("ListTasks: sleeping %v", d.options.Interval))
+		if !errored {
+			d.options.Callback(tasks) // deliver result
+		}
+
+		slog.Info(fmt.Sprintf("Run: sleeping %v", d.options.Interval))
 		time.Sleep(d.options.Interval)
 	}
 }
 
-func (d *Discovery) describeTasks(taskArns []string) []Task {
+func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
 	if len(taskArns) == 0 {
 		slog.Error("ListTasks: empty")
-		return nil
+		return nil, nil
 	}
 	input := ecs.DescribeTasksInput{
 		Tasks:   taskArns,
@@ -126,8 +141,7 @@ func (d *Discovery) describeTasks(taskArns []string) []Task {
 	}
 	out, err := d.clientEcs.DescribeTasks(context.TODO(), &input)
 	if err != nil {
-		slog.Error(fmt.Sprintf("DescribeTasks: error: %v", err))
-		return nil
+		return nil, err
 	}
 
 	var tasks []Task
@@ -161,5 +175,5 @@ func (d *Discovery) describeTasks(taskArns []string) []Task {
 		})
 	}
 
-	return tasks
+	return tasks, nil
 }
