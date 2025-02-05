@@ -3,9 +3,13 @@ package discovery
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -208,4 +212,38 @@ func findAddress(attachments []types.Attachment) string {
 		}
 	}
 	return ""
+}
+
+// FindCluster finds ECS cluster by querying container metadata.
+func FindCluster() (string, error) {
+	uri := os.Getenv("ECS_CONTAINER_METADATA_URI")
+	if uri == "" {
+		return "", errors.New("env var ECS_CONTAINER_METADATA_URI is empty")
+	}
+	resp, errGet := http.Get(uri)
+	if errGet != nil {
+		return "", errGet
+	}
+	defer resp.Body.Close()
+	body, errBody := io.ReadAll(resp.Body)
+	if errBody != nil {
+		return "", fmt.Errorf("status:%d uri:%s body_error:%v", resp.StatusCode, uri, errBody)
+	}
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("bad_status:%d uri:%s body:%s", resp.StatusCode, uri, string(body))
+	}
+	var metadata metadataFormat
+	if err := json.Unmarshal(body, &metadata); err != nil {
+		return "", fmt.Errorf("status:%d uri:%s json_error:%v", resp.StatusCode, uri, err)
+	}
+	const labelKey = "com.amazonaws.ecs.cluster"
+	clusterArn, found := metadata.Labels[labelKey]
+	if !found {
+		return "", fmt.Errorf("status:%d uri:%s missing label %s in metadata", resp.StatusCode, uri, labelKey)
+	}
+	return clusterArn, nil
+}
+
+type metadataFormat struct {
+	Labels map[string]string `json:"Labels"`
 }
