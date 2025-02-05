@@ -118,8 +118,7 @@ func Tasks(clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
 		if errList != nil {
 			return nil, errList
 		}
-
-		slog.Info(fmt.Sprintf("ListTasks: found %d of maxResults=%d tasks",
+		slog.Info(fmt.Sprintf("Tasks: ListTasks found %d of maxResults=%d tasks",
 			len(out.TaskArns), maxResults))
 
 		list, errDesc := describeTasks(clientEcs, cluster, out.TaskArns)

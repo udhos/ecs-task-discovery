@@ -24,3 +24,34 @@ export SERVICE=demo
 
 ecs-task-discovery-example
 ```
+
+# References
+
+## ECS Exec Checker
+
+ECS Checker: https://github.com/aws-containers/amazon-ecs-exec-checker
+
+```bash
+git clone https://github.com/aws-containers/amazon-ecs-exec-checker
+
+cd amazon-ecs-exec-checker
+
+./check-ecs-exec.sh demo 1641160e91d34bbf880549bde1981fb3
+```
+
+## Execute command
+
+```bash
+aws ecs update-service \
+    --task-definition miniapi \
+    --cluster demo \
+    --service demo \
+    --enable-execute-command \
+    --force-new-deployment
+
+aws ecs execute-command --cluster demo \
+    --task 1641160e91d34bbf880549bde1981fb3 \
+    --container miniapi \
+    --interactive \
+    --command "/bin/sh"
+```
