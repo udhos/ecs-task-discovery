@@ -30,7 +30,7 @@ ecs-task-discovery-example
 
 ## ECS Exec Checker
 
-ECS Checker: https://github.com/aws-containers/amazon-ecs-exec-checker
+ECS Exec Checker: https://github.com/aws-containers/amazon-ecs-exec-checker
 
 ```bash
 git clone https://github.com/aws-containers/amazon-ecs-exec-checker
