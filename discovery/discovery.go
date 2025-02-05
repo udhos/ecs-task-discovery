@@ -77,68 +77,75 @@ func New(options Options) (*Discovery, error) {
 
 // Run runs a Discovery.
 func (d *Discovery) Run() {
-
-	desiredStatus := "RUNNING"
-	maxResults := int32(100) // 1..100
-
-	input := ecs.ListTasksInput{
-		Cluster:       aws.String(d.options.Cluster),
-		ServiceName:   aws.String(d.options.ServiceName),
-		MaxResults:    aws.Int32(maxResults),
-		DesiredStatus: types.DesiredStatus(desiredStatus),
-	}
-
 	for {
-
 		begin := time.Now()
 
-		var tasks []Task
-		var errored bool
-
-		for {
-			out, errList := d.clientEcs.ListTasks(context.TODO(), &input)
-			if errList == nil {
-				slog.Info(fmt.Sprintf("ListTasks: found %d of maxResults=%d tasks",
-					len(out.TaskArns), maxResults))
-				list, errDesc := d.describeTasks(out.TaskArns)
-				if errDesc != nil {
-					slog.Error(fmt.Sprintf("DescribeTasks: error: %v", errDesc))
-					errored = true // do not report partial result
-					break          // do not hammer ListTasks on error
-				}
-				tasks = append(tasks, list...)
-				input.NextToken = out.NextToken
-				if out.NextToken == nil {
-					break // finished
-				}
-				input.NextToken = out.NextToken
-			} else {
-				slog.Error(fmt.Sprintf("ListTasks: error: %v", errList))
-				errored = true // do not report partial result
-				break          // do not hammer ListTasks on error
-			}
+		tasks, err := Tasks(d.clientEcs, d.options.Cluster, d.options.ServiceName)
+		if err != nil {
+			slog.Error(fmt.Sprintf("Tasks: error: %v", err))
+		} else {
+			slog.Info(fmt.Sprintf("Run: tasksFound=%d elapsed=%v", len(tasks), time.Since(begin)))
+			d.options.Callback(tasks) // deliver result
 		}
 
 		slog.Info(fmt.Sprintf("Run: tasksFound=%d elapsed=%v", len(tasks), time.Since(begin)))
-
-		if !errored {
-			d.options.Callback(tasks) // deliver result
-		}
 
 		slog.Info(fmt.Sprintf("Run: sleeping %v", d.options.Interval))
 		time.Sleep(d.options.Interval)
 	}
 }
 
-func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
+// Tasks discovers running ECS tasks.
+func Tasks(clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
+
+	desiredStatus := "RUNNING"
+	maxResults := int32(100) // 1..100
+
+	input := ecs.ListTasksInput{
+		Cluster:       aws.String(cluster),
+		ServiceName:   aws.String(serviceName),
+		MaxResults:    aws.Int32(maxResults),
+		DesiredStatus: types.DesiredStatus(desiredStatus),
+	}
+
+	var tasks []Task // collect all tasks
+
+	//
+	// scan over pages of ListTasks responses
+	//
+	for {
+		out, errList := clientEcs.ListTasks(context.TODO(), &input)
+		if errList != nil {
+			return nil, errList
+		}
+
+		slog.Info(fmt.Sprintf("ListTasks: found %d of maxResults=%d tasks",
+			len(out.TaskArns), maxResults))
+
+		list, errDesc := describeTasks(clientEcs, cluster, out.TaskArns)
+		if errDesc != nil {
+			return nil, errDesc
+		}
+		tasks = append(tasks, list...)
+		if out.NextToken == nil {
+			break // finished last page
+		}
+		input.NextToken = out.NextToken // next page
+	}
+
+	return tasks, nil
+}
+
+// describeTasks describes a batch of tasks.
+func describeTasks(clientEcs *ecs.Client, cluster string, taskArns []string) ([]Task, error) {
 	if len(taskArns) == 0 {
 		return nil, nil
 	}
 	input := ecs.DescribeTasksInput{
 		Tasks:   taskArns,
-		Cluster: aws.String(d.options.Cluster),
+		Cluster: aws.String(cluster),
 	}
-	out, err := d.clientEcs.DescribeTasks(context.TODO(), &input)
+	out, err := clientEcs.DescribeTasks(context.TODO(), &input)
 	if err != nil {
 		return nil, err
 	}
@@ -146,22 +153,41 @@ func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
 	var tasks []Task
 	for _, t := range out.Tasks {
 		//
-		// find address
+		// find task address
 		//
-		var addr string
-		if len(t.Attachments) > 0 {
-			at := t.Attachments[0]
-			for _, kv := range at.Details {
-				if key := aws.ToString(kv.Name); key == "privateIPv4Address" {
-					addr = aws.ToString(kv.Value)
-					break
-				}
-			}
+
+		switch {
+		case len(t.Attachments) == 0:
+			// log only
+			slog.Error("describeTasks: task missing network attachment",
+				"ARN", aws.ToString(t.TaskArn),
+				"healthStatus", t.HealthStatus,
+				"lastStatus", aws.ToString(t.LastStatus),
+			)
+		case len(t.Attachments) == 1:
+			// quiet
+		default:
+			// log only
+			slog.Error(fmt.Sprintf("describeTasks: task has multiple network attachments: %d",
+				len(t.Attachments)),
+				"ARN", aws.ToString(t.TaskArn),
+				"healthStatus", t.HealthStatus,
+				"lastStatus", aws.ToString(t.LastStatus),
+			)
 		}
 
+		addr := findAddress(t.Attachments)
+
 		if addr == "" {
-			continue // missing address
+			slog.Error("describeTasks: task missing privateIPv4Address",
+				"ARN", aws.ToString(t.TaskArn),
+				"healthStatus", t.HealthStatus,
+				"lastStatus", aws.ToString(t.LastStatus),
+			)
+			continue // actual error: missing address
 		}
+
+		// task address found
 
 		tasks = append(tasks, Task{
 			ARN:          aws.ToString(t.TaskArn),
@@ -172,4 +198,15 @@ func (d *Discovery) describeTasks(taskArns []string) ([]Task, error) {
 	}
 
 	return tasks, nil
+}
+
+func findAddress(attachments []types.Attachment) string {
+	for _, at := range attachments {
+		for _, kv := range at.Details {
+			if aws.ToString(kv.Name) == "privateIPv4Address" {
+				return aws.ToString(kv.Value)
+			}
+		}
+	}
+	return ""
 }
