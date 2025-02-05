@@ -26,6 +26,20 @@ export SERVICE=demo
 ecs-task-discovery-example
 ```
 
+# Testing agent
+
+```bash
+# mock metadata server
+cd samples
+python3 -m http.server 8000
+
+# run agent pointing to mocked metadata
+export ECS_CONTAINER_METADATA_URI=http://localhost:8000/metadata.json
+ecs-task-discovery-agent
+
+curl localhost:8080/tasks/demo
+```
+
 # References
 
 ## ECS Exec Checker

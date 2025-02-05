@@ -42,10 +42,10 @@ type Options struct {
 
 // Task represents a task.
 type Task struct {
-	ARN          string
-	Address      string
-	HealthStatus string
-	LastStatus   string
+	ARN          string `json:"arn"`
+	Address      string `json:"address"`
+	HealthStatus string `json:"health_status"`
+	LastStatus   string `json:"last_status"`
 }
 
 // New creates a Discovery.
