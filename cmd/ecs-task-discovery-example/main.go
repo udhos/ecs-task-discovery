@@ -46,7 +46,7 @@ func main() {
 	}
 	service := os.Getenv("SERVICE")
 	if service == "" {
-		service = "demo"
+		service = "ecs-task-discovery-example"
 	}
 
 	slog.Info(fmt.Sprintf("CLUSTER=%s", cluster))
