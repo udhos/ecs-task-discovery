@@ -32,6 +32,7 @@ type application struct {
 	groupcacheEnable             bool
 	cacheTTL                     time.Duration
 	ecsTaskDiscoveryAgentService string
+	forceSingleTask              bool
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -75,6 +76,7 @@ func main() {
 		groupcacheEnable:             envBool("GROUPCACHE_ENABLE", true),
 		cacheTTL:                     envDuration("CACHE_TTL", 20*time.Second),
 		ecsTaskDiscoveryAgentService: envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
+		forceSingleTask:              envBool("FORCE_SINGLE_TASK", false),
 
 		awsConfig: mustAwsConfig(),
 	}

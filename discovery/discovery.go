@@ -37,6 +37,10 @@ type Options struct {
 	Callback func(tasks []Task)
 
 	Client *ecs.Client
+
+	ForceSingleTask string
+
+	DisableAgentQuery bool
 }
 
 // Task represents a task.
@@ -77,22 +81,68 @@ func New(options Options) (*Discovery, error) {
 
 // Run runs a Discovery.
 func (d *Discovery) Run() {
+	const me = "Discovery.Run"
+
 	for {
 		begin := time.Now()
 
-		tasks, err := Tasks(context.TODO(), d.options.Client, d.options.Cluster, d.options.ServiceName)
-		if err != nil {
-			slog.Error(fmt.Sprintf("Tasks: error: %v", err))
-		} else {
-			slog.Info(fmt.Sprintf("Run: tasksFound=%d elapsed=%v", len(tasks), time.Since(begin)))
+		tasks := d.listTasks()
+
+		elapsed := time.Since(begin)
+
+		infof("%s: forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d elapsed=%v",
+			me, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), elapsed)
+
+		if len(tasks) > 0 {
 			d.options.Callback(tasks) // deliver result
 		}
 
-		slog.Info(fmt.Sprintf("Run: tasksFound=%d elapsed=%v", len(tasks), time.Since(begin)))
-
-		slog.Info(fmt.Sprintf("Run: sleeping %v", d.options.Interval))
+		infof("%s: sleeping %v", me, d.options.Interval)
 		time.Sleep(d.options.Interval)
 	}
+}
+
+func (d *Discovery) listTasks() []Task {
+	const me = "Discovery.listTasks"
+
+	if !d.options.DisableAgentQuery {
+		return d.queryAgent()
+	}
+
+	var tasks []Task
+
+	if d.options.ForceSingleTask != "" {
+		tasks = []Task{
+			{
+				ARN:          "mockedSingleTaskARN",
+				Address:      d.options.ForceSingleTask,
+				HealthStatus: "UNKNOWN",
+				LastStatus:   "RUNNING",
+			},
+		}
+	} else {
+		var err error
+		tasks, err = Tasks(context.TODO(), d.options.Client, d.options.Cluster, d.options.ServiceName)
+		if err != nil {
+			errorf("%s: Tasks: error: %v", me, err)
+		}
+	}
+
+	return tasks
+}
+
+func (d *Discovery) queryAgent() []Task {
+	const me = "Discovery.queryAgent"
+	infof("%s", me)
+	return nil
+}
+
+func infof(format string, a ...any) {
+	slog.Info(fmt.Sprintf(format, a...))
+}
+
+func errorf(format string, a ...any) {
+	slog.Error(fmt.Sprintf(format, a...))
 }
 
 // Tasks discovers running ECS tasks.
@@ -154,8 +204,6 @@ func describeTasks(ctx context.Context, clientEcs *ecs.Client, cluster string, t
 		//
 		// find task address
 		//
-
-		slog.Info(fmt.Sprintf("***DEBUG: %s %s", *t.Group, *t.StartedBy))
 
 		switch {
 		case len(t.Attachments) == 0:

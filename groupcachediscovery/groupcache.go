@@ -53,6 +53,10 @@ type Options struct {
 
 	// ServiceName filters tasks by service name.
 	ServiceName string
+
+	ForceSingleTask string
+
+	DisableAgentQuery bool
 }
 
 func buildURL(addr, groupcachePort string) string {
@@ -72,7 +76,7 @@ func Run(options Options) error {
 
 	const me = "groupcachediscovery.Run: callback"
 
-	myAddr, errAddr := findMyAddr()
+	myAddr, errAddr := FindMyAddr()
 	if errAddr != nil {
 		return errAddr
 	}
@@ -130,10 +134,12 @@ func Run(options Options) error {
 	}
 
 	disc, err := discovery.New(discovery.Options{
-		Cluster:     options.Cluster,
-		ServiceName: options.ServiceName,
-		Client:      options.Client,
-		Callback:    callback,
+		Cluster:           options.Cluster,
+		ServiceName:       options.ServiceName,
+		Client:            options.Client,
+		Callback:          callback,
+		ForceSingleTask:   options.ForceSingleTask,
+		DisableAgentQuery: options.DisableAgentQuery,
 	})
 	if err != nil {
 		return err
@@ -144,7 +150,20 @@ func Run(options Options) error {
 	return nil
 }
 
-func findMyAddr() (string, error) {
+// FindMyURL returns my URL for groupcache pool.
+// groupcachePort example: ":5000".
+// Sample resulting URL: "http://10.0.0.1:5000"
+func FindMyURL(groupcachePort string) (string, error) {
+	addr, errAddr := FindMyAddr()
+	if errAddr != nil {
+		return "", errAddr
+	}
+	url := buildURL(addr, groupcachePort)
+	return url, nil
+}
+
+// FindMyAddr returns our local IP address.
+func FindMyAddr() (string, error) {
 	host, errHost := os.Hostname()
 	if errHost != nil {
 		return "", errHost

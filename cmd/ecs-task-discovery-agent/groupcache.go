@@ -7,7 +7,6 @@ import (
 
 	"github.com/modernprogram/groupcache/v2"
 	"github.com/udhos/ecs-task-discovery/groupcachediscovery"
-	"github.com/udhos/kubegroup/kubegroup"
 )
 
 func startGroupcache(app *application) {
@@ -18,7 +17,7 @@ func startGroupcache(app *application) {
 	// create groupcache pool
 	//
 
-	myURL, errURL := kubegroup.FindMyURL(app.groupcachePort)
+	myURL, errURL := groupcachediscovery.FindMyURL(app.groupcachePort)
 	if errURL != nil {
 		fatalf("groupcache my URL: %v", errURL)
 	}
@@ -48,6 +47,16 @@ func startGroupcache(app *application) {
 		GroupCachePort: app.groupcachePort,
 		Cluster:        app.clusterName,
 		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
+		// ForceSingleTask: see below
+		DisableAgentQuery: true, // do not query ourselves
+	}
+
+	if app.forceSingleTask {
+		myAddr, errAddr := groupcachediscovery.FindMyAddr()
+		if errAddr != nil {
+			fatalf("groupcache my address: %v", errAddr)
+		}
+		discOptions.ForceSingleTask = myAddr
 	}
 
 	errDisc := groupcachediscovery.Run(discOptions)
