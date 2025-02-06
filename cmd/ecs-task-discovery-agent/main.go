@@ -29,6 +29,7 @@ type application struct {
 	groupcachePort         string
 	groupcachePurgeExpired bool
 	groupcacheSizeBytes    int64
+	groupcacheEnable       bool
 	cacheTTL               time.Duration
 
 	awsConfig        aws.Config
@@ -70,6 +71,7 @@ func main() {
 		groupcachePort:         envString("GROUPCACHE_PORT", ":5000"),
 		groupcachePurgeExpired: envBool("GROUPCACHE_PURGE_EXPIRED", true),
 		groupcacheSizeBytes:    envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
+		groupcacheEnable:       envBool("GROUPCACHE_ENABLE", true),
 		cacheTTL:               envDuration("CACHE_TTL", 20*time.Second),
 
 		awsConfig: mustAwsConfig(),
@@ -126,8 +128,7 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	begin := time.Now()
 
-	const queryCache = true
-	if queryCache {
+	if app.groupcacheEnable {
 		err = app.cache.Get(context.TODO(), serviceName, groupcache.AllocatingByteSliceSink(&data))
 	} else {
 		data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName, serviceName)
