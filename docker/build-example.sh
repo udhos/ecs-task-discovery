@@ -14,5 +14,5 @@ docker build --no-cache \
 echo push:
 echo "docker push udhos/$app:$version; docker push udhos/$app:latest" > docker-push-example.sh
 chmod a+rx docker-push-example.sh
-echo docker-push.sh:
-cat docker-push.sh
+echo docker-push-example.sh:
+cat docker-push-example.sh
