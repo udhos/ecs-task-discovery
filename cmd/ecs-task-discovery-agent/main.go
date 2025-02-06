@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/modernprogram/groupcache/v2"
 	"github.com/udhos/boilerplate/awsconfig"
 	"github.com/udhos/boilerplate/boilerplate"
 
@@ -22,11 +24,17 @@ import (
 )
 
 type application struct {
-	clusterName string
-	listenAddr  string
+	clusterName            string
+	listenAddr             string
+	groupcachePort         string
+	groupcachePurgeExpired bool
+	groupcacheSizeBytes    int64
+	cacheTTL               time.Duration
 
-	awsConfig aws.Config
-	clientEcs *ecs.Client
+	awsConfig        aws.Config
+	clientEcs        *ecs.Client
+	groupcacheServer *http.Server
+	cache            *groupcache.Group
 }
 
 func main() {
@@ -52,15 +60,34 @@ func main() {
 		slog.Info(v)
 	}
 
+	//
+	// create application
+	//
+
 	app := &application{
-		clusterName: mustClusterName(),
-		listenAddr:  envString("LISTEN_ADDR", ":8080"),
-		awsConfig:   mustAwsConfig(),
+		clusterName:            mustClusterName(),
+		listenAddr:             envString("LISTEN_ADDR", ":8080"),
+		groupcachePort:         envString("GROUPCACHE_PORT", ":5000"),
+		groupcachePurgeExpired: envBool("GROUPCACHE_PURGE_EXPIRED", true),
+		groupcacheSizeBytes:    envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
+		cacheTTL:               envDuration("CACHE_TTL", 20*time.Second),
+
+		awsConfig: mustAwsConfig(),
 	}
 
 	app.clientEcs = ecs.NewFromConfig(app.awsConfig)
 
 	slog.Info(fmt.Sprintf("clusterName: %s", app.clusterName))
+
+	//
+	// start groupcache
+	//
+
+	startGroupcache(app)
+
+	//
+	// start server
+	//
 
 	const route = "/tasks/{service}"
 	slog.Info(fmt.Sprintf("registering route: %s", route))
@@ -69,11 +96,6 @@ func main() {
 	slog.Info(fmt.Sprintf("listening on HTTP %s", app.listenAddr))
 	err := http.ListenAndServe(app.listenAddr, nil)
 	fatalf("listen error: %v", err)
-}
-
-func fatalf(format string, a ...any) {
-	slog.Error("FATAL: " + fmt.Sprintf(format, a...))
-	os.Exit(1)
 }
 
 func mustClusterName() string {
@@ -95,39 +117,64 @@ func mustAwsConfig() aws.Config {
 
 func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	const me = "application.ServeHTTP"
+
 	serviceName := r.PathValue("service")
 
-	slog.Info(fmt.Sprintf("service=%s", serviceName))
+	var data []byte
+	var err error
 
 	begin := time.Now()
 
-	tasks, err := discovery.Tasks(app.clientEcs, app.clusterName, serviceName)
+	const queryCache = true
+	if queryCache {
+		err = app.cache.Get(context.TODO(), serviceName, groupcache.AllocatingByteSliceSink(&data))
+	} else {
+		data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName, serviceName)
+	}
 
 	elapsed := time.Since(begin)
 
+	infof("%s: service=%s elapsed=%v",
+		me, serviceName, elapsed)
+
 	if err != nil {
-		msg := fmt.Sprintf("service=%s elapsed=%v error:%v",
-			serviceName, elapsed, err)
+		msg := fmt.Sprintf("%s: error: %v",
+			me, err)
 		slog.Error(msg)
 		http.Error(w, msg, 500)
 		return
 	}
-
-	data, errJSON := json.Marshal(tasks)
-	if errJSON != nil {
-		msg := fmt.Sprintf("service=%s elapsed=%v error:%v",
-			serviceName, elapsed, errJSON)
-		slog.Error(msg)
-		http.Error(w, msg, 500)
-		return
-	}
-
-	slog.Info(fmt.Sprintf("service=%s elapsed=%v found %d tasks",
-		serviceName, elapsed, len(tasks)))
 
 	h := w.Header()
 	h.Set("Content-Length", strconv.Itoa(len(data)))
 	h.Set("Content-Type", "text/json; charset=utf-8")
 	h.Set("X-Content-Type-Options", "nosniff")
 	w.Write(data)
+}
+
+func findTasks(ctx context.Context, clientEcs *ecs.Client, clusterName, serviceName string) ([]byte, error) {
+	const me = "findTasks"
+
+	begin := time.Now()
+
+	tasks, err := discovery.Tasks(ctx, clientEcs, clusterName, serviceName)
+
+	elapsed := time.Since(begin)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: service=%s elapsed=%v error:%v",
+			me, serviceName, elapsed, err)
+	}
+
+	data, errJSON := json.Marshal(tasks)
+	if errJSON != nil {
+		return nil, fmt.Errorf("%s: service=%s elapsed=%v error:%v",
+			me, serviceName, elapsed, errJSON)
+	}
+
+	slog.Info(fmt.Sprintf("%s: service=%s elapsed=%v found %d tasks",
+		me, serviceName, elapsed, len(tasks)))
+
+	return data, nil
 }

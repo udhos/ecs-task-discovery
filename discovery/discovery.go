@@ -84,7 +84,7 @@ func (d *Discovery) Run() {
 	for {
 		begin := time.Now()
 
-		tasks, err := Tasks(d.clientEcs, d.options.Cluster, d.options.ServiceName)
+		tasks, err := Tasks(context.TODO(), d.clientEcs, d.options.Cluster, d.options.ServiceName)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Tasks: error: %v", err))
 		} else {
@@ -100,7 +100,7 @@ func (d *Discovery) Run() {
 }
 
 // Tasks discovers running ECS tasks.
-func Tasks(clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
+func Tasks(ctx context.Context, clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
 
 	desiredStatus := "RUNNING"
 	maxResults := int32(100) // 1..100
@@ -118,14 +118,14 @@ func Tasks(clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
 	// scan over pages of ListTasks responses
 	//
 	for {
-		out, errList := clientEcs.ListTasks(context.TODO(), &input)
+		out, errList := clientEcs.ListTasks(ctx, &input)
 		if errList != nil {
 			return nil, errList
 		}
 		slog.Info(fmt.Sprintf("Tasks: ListTasks found %d of maxResults=%d tasks",
 			len(out.TaskArns), maxResults))
 
-		list, errDesc := describeTasks(clientEcs, cluster, out.TaskArns)
+		list, errDesc := describeTasks(ctx, clientEcs, cluster, out.TaskArns)
 		if errDesc != nil {
 			return nil, errDesc
 		}
@@ -140,7 +140,7 @@ func Tasks(clientEcs *ecs.Client, cluster, serviceName string) ([]Task, error) {
 }
 
 // describeTasks describes a batch of tasks.
-func describeTasks(clientEcs *ecs.Client, cluster string, taskArns []string) ([]Task, error) {
+func describeTasks(ctx context.Context, clientEcs *ecs.Client, cluster string, taskArns []string) ([]Task, error) {
 	if len(taskArns) == 0 {
 		return nil, nil
 	}
@@ -148,7 +148,7 @@ func describeTasks(clientEcs *ecs.Client, cluster string, taskArns []string) ([]
 		Tasks:   taskArns,
 		Cluster: aws.String(cluster),
 	}
-	out, err := clientEcs.DescribeTasks(context.TODO(), &input)
+	out, err := clientEcs.DescribeTasks(ctx, &input)
 	if err != nil {
 		return nil, err
 	}
