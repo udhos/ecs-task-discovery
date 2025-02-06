@@ -24,13 +24,14 @@ import (
 )
 
 type application struct {
-	clusterName            string
-	listenAddr             string
-	groupcachePort         string
-	groupcachePurgeExpired bool
-	groupcacheSizeBytes    int64
-	groupcacheEnable       bool
-	cacheTTL               time.Duration
+	clusterName                  string
+	listenAddr                   string
+	groupcachePort               string
+	groupcachePurgeExpired       bool
+	groupcacheSizeBytes          int64
+	groupcacheEnable             bool
+	cacheTTL                     time.Duration
+	ecsTaskDiscoveryAgentService string
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -66,13 +67,14 @@ func main() {
 	//
 
 	app := &application{
-		clusterName:            mustClusterName(),
-		listenAddr:             envString("LISTEN_ADDR", ":8080"),
-		groupcachePort:         envString("GROUPCACHE_PORT", ":5000"),
-		groupcachePurgeExpired: envBool("GROUPCACHE_PURGE_EXPIRED", true),
-		groupcacheSizeBytes:    envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
-		groupcacheEnable:       envBool("GROUPCACHE_ENABLE", true),
-		cacheTTL:               envDuration("CACHE_TTL", 20*time.Second),
+		clusterName:                  mustClusterName(),
+		listenAddr:                   envString("LISTEN_ADDR", ":8080"),
+		groupcachePort:               envString("GROUPCACHE_PORT", ":5000"),
+		groupcachePurgeExpired:       envBool("GROUPCACHE_PURGE_EXPIRED", true),
+		groupcacheSizeBytes:          envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
+		groupcacheEnable:             envBool("GROUPCACHE_ENABLE", true),
+		cacheTTL:                     envDuration("CACHE_TTL", 20*time.Second),
+		ecsTaskDiscoveryAgentService: envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
 
 		awsConfig: mustAwsConfig(),
 	}

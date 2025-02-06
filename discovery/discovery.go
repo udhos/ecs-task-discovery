@@ -15,14 +15,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/udhos/boilerplate/awsconfig"
 )
 
 // Discovery is used for performing task discovery.
 type Discovery struct {
-	options   Options
-	awsConfig awsconfig.Output
-	clientEcs *ecs.Client
+	options Options
 }
 
 // Options define settings for creating a Discovery.
@@ -33,11 +30,13 @@ type Options struct {
 	// ServiceName filters tasks that belong to service.
 	ServiceName string
 
-	// Interval for polling, defaults to 30s if undefined.
+	// Interval for polling, defaults to 20s if undefined.
 	Interval time.Duration
 
 	// Callback is required callback for list of discovered tasks.
 	Callback func(tasks []Task)
+
+	Client *ecs.Client
 }
 
 // Task represents a task.
@@ -60,22 +59,15 @@ func New(options Options) (*Discovery, error) {
 	}
 
 	if options.Interval == 0 {
-		options.Interval = 30 * time.Second
+		options.Interval = 20 * time.Second
 	}
 
 	if options.Callback == nil {
 		return nil, errors.New("Callback is required")
 	}
 
-	awsCfg, errCfg := awsconfig.AwsConfig(awsconfig.Options{})
-	if errCfg != nil {
-		return nil, errCfg
-	}
-
 	return &Discovery{
-		options:   options,
-		awsConfig: awsCfg,
-		clientEcs: ecs.NewFromConfig(awsCfg.AwsConfig),
+		options: options,
 	}, nil
 }
 
@@ -84,7 +76,7 @@ func (d *Discovery) Run() {
 	for {
 		begin := time.Now()
 
-		tasks, err := Tasks(context.TODO(), d.clientEcs, d.options.Cluster, d.options.ServiceName)
+		tasks, err := Tasks(context.TODO(), d.options.Client, d.options.Cluster, d.options.ServiceName)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Tasks: error: %v", err))
 		} else {
@@ -122,8 +114,8 @@ func Tasks(ctx context.Context, clientEcs *ecs.Client, cluster, serviceName stri
 		if errList != nil {
 			return nil, errList
 		}
-		slog.Info(fmt.Sprintf("Tasks: ListTasks found %d of maxResults=%d tasks",
-			len(out.TaskArns), maxResults))
+		slog.Info(fmt.Sprintf("Tasks: ListTasks: cluster=%s service=%s found %d of maxResults=%d tasks",
+			cluster, serviceName, len(out.TaskArns), maxResults))
 
 		list, errDesc := describeTasks(ctx, clientEcs, cluster, out.TaskArns)
 		if errDesc != nil {

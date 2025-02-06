@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/modernprogram/groupcache/v2"
+	"github.com/udhos/ecs-task-discovery/groupcachediscovery"
 	"github.com/udhos/kubegroup/kubegroup"
 )
 
@@ -38,8 +39,21 @@ func startGroupcache(app *application) {
 	}()
 
 	//
-	// start watcher for addresses of peers
+	// start groupcache peer discovery
 	//
+
+	discOptions := groupcachediscovery.Options{
+		Pool:           pool,
+		Client:         app.clientEcs,
+		GroupCachePort: app.groupcachePort,
+		Cluster:        app.clusterName,
+		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
+	}
+
+	errDisc := groupcachediscovery.Run(discOptions)
+	if errDisc != nil {
+		fatalf("groupcache discovery error: %v", errDisc)
+	}
 
 	/*
 		clientsetOpt := kubeclient.Options{DebugLog: app.cfg.kubegroupDebug}
