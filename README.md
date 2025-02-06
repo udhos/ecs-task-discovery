@@ -1,7 +1,8 @@
 [![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/udhos/ecs-task-discovery/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/udhos/ecs-task-discovery)](https://goreportcard.com/report/github.com/udhos/ecs-task-discovery)
 [![Go Reference](https://pkg.go.dev/badge/github.com/udhos/ecs-task-discovery.svg)](https://pkg.go.dev/github.com/udhos/ecs-task-discovery)
-[![Docker Pulls](https://img.shields.io/docker/pulls/udhos/ecs-task-discovery-agent)](https://hub.docker.com/r/udhos/ecs-task-discovery-agent)
+[![Docker Pulls Agent](https://img.shields.io/docker/pulls/udhos/ecs-task-discovery-agent)](https://hub.docker.com/r/udhos/ecs-task-discovery-agent)
+[![Docker Pulls Example](https://img.shields.io/docker/pulls/udhos/ecs-task-discovery-example)](https://hub.docker.com/r/udhos/ecs-task-discovery-example)
 
 # ecs-task-discovery
 

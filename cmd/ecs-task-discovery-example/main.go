@@ -2,18 +2,43 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/udhos/boilerplate/awsconfig"
+	"github.com/udhos/boilerplate/boilerplate"
 	"github.com/udhos/ecs-task-discovery/discovery"
+	"github.com/udhos/ecs-task-discovery/internal/shared"
 )
 
 func main() {
+	//
+	// command-line
+	//
+	var showVersion bool
+	flag.BoolVar(&showVersion, "version", showVersion, "show version")
+	flag.Parse()
+
+	me := filepath.Base(os.Args[0])
+
+	//
+	// version
+	//
+	{
+		v := boilerplate.LongVersion(me + " version=" + shared.Version)
+		if showVersion {
+			fmt.Print(v)
+			fmt.Println()
+			return
+		}
+		slog.Info(v)
+	}
 
 	cluster := os.Getenv("CLUSTER")
 	if cluster == "" {

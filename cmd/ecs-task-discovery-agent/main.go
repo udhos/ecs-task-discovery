@@ -21,6 +21,7 @@ import (
 	"github.com/udhos/boilerplate/boilerplate"
 
 	"github.com/udhos/ecs-task-discovery/discovery"
+	"github.com/udhos/ecs-task-discovery/internal/shared"
 )
 
 type application struct {
@@ -54,7 +55,7 @@ func main() {
 	// version
 	//
 	{
-		v := boilerplate.LongVersion(me + " version=" + version)
+		v := boilerplate.LongVersion(me + " version=" + shared.Version)
 		if showVersion {
 			fmt.Print(v)
 			fmt.Println()
