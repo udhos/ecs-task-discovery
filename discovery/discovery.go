@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -41,7 +42,17 @@ type Options struct {
 	ForceSingleTask string
 
 	DisableAgentQuery bool
+
+	// AgentURL forces agent URL.
+	// If undefined, retrieves value from env var ECS_TASK_DISCOVERY_AGENT_URL.
+	// If undefined, defaults to http://esc-task-discovery-agent:8080/tasks.
+	AgentURL string
 }
+
+const (
+	defaultAgentURL = "http://esc-task-discovery-agent:8080/tasks"
+	envAgentURL     = "ECS_TASK_DISCOVERY_AGENT_URL"
+)
 
 // Task represents a task.
 type Task struct {
@@ -105,11 +116,17 @@ func (d *Discovery) Run() {
 func (d *Discovery) listTasks() []Task {
 	const me = "Discovery.listTasks"
 
-	if !d.options.DisableAgentQuery {
-		return d.queryAgent()
-	}
-
 	var tasks []Task
+
+	if !d.options.DisableAgentQuery {
+		var err error
+		tasks, err = d.queryAgent()
+		if err == nil {
+			infof("%s: query agent: %d tasks", me, len(tasks))
+			return tasks
+		}
+		errorf("%s: query agent error: %v", me, err)
+	}
 
 	if d.options.ForceSingleTask != "" {
 		tasks = []Task{
@@ -131,10 +148,51 @@ func (d *Discovery) listTasks() []Task {
 	return tasks
 }
 
-func (d *Discovery) queryAgent() []Task {
+func (d *Discovery) queryAgent() ([]Task, error) {
 	const me = "Discovery.queryAgent"
-	infof("%s", me)
-	return nil
+
+	agentURL := d.options.AgentURL
+	if agentURL == "" {
+		agentURL = os.Getenv(envAgentURL)
+		if agentURL == "" {
+			agentURL = defaultAgentURL
+		}
+	}
+
+	infof("%s: agentURL: (1)AgentURL='%s' (2)%s='%s' (3)default=%s using value: '%s'",
+		me, d.options.AgentURL, envAgentURL, os.Getenv(envAgentURL), defaultAgentURL, agentURL)
+
+	u, errJoin := url.JoinPath(agentURL, d.options.ServiceName)
+	if errJoin != nil {
+		return nil, errJoin
+	}
+
+	resp, errGet := http.Get(u)
+	if errGet != nil {
+		return nil, errGet
+	}
+
+	defer resp.Body.Close()
+
+	body, errBody := io.ReadAll(resp.Body)
+	if errBody != nil {
+		return nil, fmt.Errorf("%s: status=%d url=%s body_error:%v",
+			me, resp.StatusCode, u, errBody)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("%s: bad_status=%d url=%s error:%s",
+			me, resp.StatusCode, u, string(body))
+	}
+
+	var tasks []Task
+
+	if errJSON := json.Unmarshal(body, &tasks); errJSON != nil {
+		return nil, fmt.Errorf("%s: status=%d url=%s json_error:%v",
+			me, resp.StatusCode, u, errJSON)
+	}
+
+	return tasks, nil
 }
 
 func infof(format string, a ...any) {

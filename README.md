@@ -34,10 +34,17 @@ cd samples
 python3 -m http.server 8000
 
 # run agent pointing to mocked metadata
+export GROUPCACHE_ENABLE=true
+export FORCE_SINGLE_TASK=true
 export ECS_CONTAINER_METADATA_URI=http://localhost:8000/metadata.json
 ecs-task-discovery-agent
 
 curl localhost:8080/tasks/demo
+
+export CLUSTER=demo
+export SERVICE=demo
+export ECS_TASK_DISCOVERY_AGENT_URL=http://localhost:8080/tasks
+ecs-task-discovery-example
 ```
 
 # References
