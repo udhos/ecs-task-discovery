@@ -81,6 +81,12 @@ func Run(options Options) error {
 
 		size := len(tasks)
 
+		infof("%s: %d tasks", me, size)
+
+		if size == 0 {
+			return
+		}
+
 		if options.Peers != nil {
 			//
 			// groupcache3
