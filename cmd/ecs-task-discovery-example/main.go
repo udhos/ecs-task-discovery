@@ -7,6 +7,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/udhos/boilerplate/awsconfig"
 	"github.com/udhos/ecs-task-discovery/discovery"
 )
 
@@ -24,15 +27,17 @@ func main() {
 	slog.Info(fmt.Sprintf("CLUSTER=%s", cluster))
 	slog.Info(fmt.Sprintf("SERVICE=%s", service))
 
+	awsConfig := mustAwsConfig()
+
 	disc, err := discovery.New(discovery.Options{
 		Cluster:     cluster,
 		ServiceName: service,
 		Callback:    callback,
 		Interval:    10 * time.Second,
+		Client:      ecs.NewFromConfig(awsConfig),
 	})
 	if err != nil {
-		slog.Error(fmt.Sprintf("FATAL: %v", err))
-		os.Exit(1)
+		fatalf("discovery.New: error: %v", err)
 	}
 	go disc.Run()
 	select {} // wait forever
@@ -46,4 +51,17 @@ func callback(tasks []discovery.Task) {
 			"lastStatus", t.LastStatus,
 		)
 	}
+}
+
+func mustAwsConfig() aws.Config {
+	awsCfg, errCfg := awsconfig.AwsConfig(awsconfig.Options{})
+	if errCfg != nil {
+		fatalf("aws config error: %v", errCfg)
+	}
+	return awsCfg.AwsConfig
+}
+
+func fatalf(format string, a ...any) {
+	slog.Error("FATAL: " + fmt.Sprintf(format, a...))
+	os.Exit(1)
 }

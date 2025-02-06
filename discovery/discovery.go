@@ -66,6 +66,10 @@ func New(options Options) (*Discovery, error) {
 		return nil, errors.New("Callback is required")
 	}
 
+	if options.Client == nil {
+		return nil, errors.New("Client is required")
+	}
+
 	return &Discovery{
 		options: options,
 	}, nil
@@ -150,6 +154,8 @@ func describeTasks(ctx context.Context, clientEcs *ecs.Client, cluster string, t
 		//
 		// find task address
 		//
+
+		slog.Info(fmt.Sprintf("***DEBUG: %s %s", *t.Group, *t.StartedBy))
 
 		switch {
 		case len(t.Attachments) == 0:
