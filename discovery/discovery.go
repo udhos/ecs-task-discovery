@@ -53,12 +53,12 @@ type Options struct {
 
 	// AgentURL forces agent URL.
 	// If undefined, retrieves value from env var ECS_TASK_DISCOVERY_AGENT_URL.
-	// If undefined, defaults to http://esc-task-discovery-agent:8080/tasks.
+	// If ECS_TASK_DISCOVERY_AGENT_URL is undefined, defaults to http://ecs-task-discovery-agent.{Cluster}:8080/tasks.
 	AgentURL string
 }
 
 const (
-	defaultAgentURL = "http://esc-task-discovery-agent:8080/tasks"
+	defaultAgentURL = "http://ecs-task-discovery-agent.%s:8080/tasks"
 	envAgentURL     = "ECS_TASK_DISCOVERY_AGENT_URL"
 )
 
@@ -159,16 +159,18 @@ func (d *Discovery) listTasks() []Task {
 func (d *Discovery) queryAgent() ([]Task, error) {
 	const me = "Discovery.queryAgent"
 
+	defaultURL := fmt.Sprintf(defaultAgentURL, d.options.Cluster)
+
 	agentURL := d.options.AgentURL
 	if agentURL == "" {
 		agentURL = os.Getenv(envAgentURL)
 		if agentURL == "" {
-			agentURL = defaultAgentURL
+			agentURL = defaultURL
 		}
 	}
 
 	infof("%s: agentURL: (1)AgentURL='%s' (2)%s='%s' (3)default=%s using value: '%s'",
-		me, d.options.AgentURL, envAgentURL, os.Getenv(envAgentURL), defaultAgentURL, agentURL)
+		me, d.options.AgentURL, envAgentURL, os.Getenv(envAgentURL), defaultURL, agentURL)
 
 	u, errJoin := url.JoinPath(agentURL, d.options.ServiceName)
 	if errJoin != nil {
