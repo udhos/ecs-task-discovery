@@ -54,8 +54,15 @@ type Options struct {
 	// ServiceName filters tasks by service name.
 	ServiceName string
 
+	// ForceSingleTask forces our local IP address.
+	// If defined, it should be set to our actual IP address.
+	// The function FindMyAddr() provides a suitable address.
+	// It is useful only for locally running the application.
 	ForceSingleTask string
 
+	// DisableAgentQuery skips querying the task discovery agent.
+	// The task discovery agent sets DisableAgentQuery to true in order to not query itself.
+	// Most applications should leave it undefined (set to false).
 	DisableAgentQuery bool
 }
 
@@ -113,7 +120,7 @@ func Run(options Options) error {
 
 			err := options.Peers.SetPeers(context.TODO(), peers)
 			if err != nil {
-				errorf("set peers: error: %v", err)
+				errorf("%s: groupcache3 set peers error: %v", me, err)
 			}
 		} else {
 			//

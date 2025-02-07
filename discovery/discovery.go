@@ -37,10 +37,18 @@ type Options struct {
 	// Callback is required callback for list of discovered tasks.
 	Callback func(tasks []Task)
 
+	// Client is required ECS client.
 	Client *ecs.Client
 
+	// ForceSingleTask forces our local IP address.
+	// If defined, it should be set to our actual IP address.
+	// The function FindMyAddr() provides a suitable address.
+	// It is useful only for locally running the application.
 	ForceSingleTask string
 
+	// DisableAgentQuery skips querying the task discovery agent.
+	// The task discovery agent sets DisableAgentQuery to true in order to not query itself.
+	// Most applications should leave it undefined (set to false).
 	DisableAgentQuery bool
 
 	// AgentURL forces agent URL.
