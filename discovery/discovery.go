@@ -327,12 +327,20 @@ func MustClusterName() string {
 	return clusterArn[lastSlash+1:]
 }
 
+const envVarMetadataURI = "ECS_CONTAINER_METADATA_URI_V4"
+
 // FindCluster finds ECS cluster ARN by querying container metadata.
+//
+// EC2: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-response.html
+// Fargate: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-fargate-response.html
+// Env var: ${ECS_CONTAINER_METADATA_URI_V4}/task
+// Field: Cluster
 func FindCluster() (string, error) {
-	uri := os.Getenv("ECS_CONTAINER_METADATA_URI")
-	if uri == "" {
-		return "", errors.New("env var ECS_CONTAINER_METADATA_URI is empty")
+	envValue := os.Getenv(envVarMetadataURI)
+	if envValue == "" {
+		return "", fmt.Errorf("env var '%s' is empty", envVarMetadataURI)
 	}
+	uri := envValue + "/task"
 	resp, errGet := http.Get(uri)
 	if errGet != nil {
 		return "", errGet
@@ -349,14 +357,19 @@ func FindCluster() (string, error) {
 	if err := json.Unmarshal(body, &metadata); err != nil {
 		return "", fmt.Errorf("status:%d uri:%s json_error:%v", resp.StatusCode, uri, err)
 	}
-	const labelKey = "com.amazonaws.ecs.cluster"
-	clusterArn, found := metadata.Labels[labelKey]
-	if !found {
-		return "", fmt.Errorf("status:%d uri:%s missing label %s in metadata", resp.StatusCode, uri, labelKey)
-	}
-	return clusterArn, nil
+	/*
+
+		const labelKey = "com.amazonaws.ecs.cluster"
+		clusterArn, found := metadata.Labels[labelKey]
+		if !found {
+			return "", fmt.Errorf("status:%d uri:%s missing label %s in metadata", resp.StatusCode, uri, labelKey)
+		}
+				return clusterArn, nil
+	*/
+	return metadata.Cluster, nil
 }
 
 type metadataFormat struct {
-	Labels map[string]string `json:"Labels"`
+	//Labels map[string]string `json:"Labels"`
+	Cluster string `json:"Cluster"`
 }
