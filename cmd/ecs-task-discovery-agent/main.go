@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -69,7 +68,7 @@ func main() {
 	//
 
 	app := &application{
-		clusterName:                  mustClusterName(),
+		clusterName:                  discovery.MustClusterName(),
 		listenAddr:                   envString("LISTEN_ADDR", ":8080"),
 		groupcachePort:               envString("GROUPCACHE_PORT", ":5000"),
 		groupcachePurgeExpired:       envBool("GROUPCACHE_PURGE_EXPIRED", true),
@@ -103,15 +102,6 @@ func main() {
 	slog.Info(fmt.Sprintf("listening on HTTP %s", app.listenAddr))
 	err := http.ListenAndServe(app.listenAddr, nil)
 	fatalf("listen error: %v", err)
-}
-
-func mustClusterName() string {
-	clusterArn, err := discovery.FindCluster()
-	if err != nil {
-		fatalf("find cluster error: %v", err)
-	}
-	lastSlash := strings.LastIndexByte(clusterArn, '/')
-	return clusterArn[lastSlash+1:]
 }
 
 func mustAwsConfig() aws.Config {

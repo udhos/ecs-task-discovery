@@ -48,9 +48,6 @@ type Options struct {
 	// server. For instance, ":5000".
 	GroupCachePort string
 
-	// Cluster is ECS cluster name.
-	Cluster string
-
 	// ServiceName filters tasks by service name.
 	ServiceName string
 
@@ -141,7 +138,6 @@ func Run(options Options) error {
 	}
 
 	disc, err := discovery.New(discovery.Options{
-		Cluster:           options.Cluster,
 		ServiceName:       options.ServiceName,
 		Client:            options.Client,
 		Callback:          callback,

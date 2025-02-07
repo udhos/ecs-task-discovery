@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,14 +21,12 @@ import (
 
 // Discovery is used for performing task discovery.
 type Discovery struct {
-	options Options
+	options     Options
+	clusterName string
 }
 
 // Options define settings for creating a Discovery.
 type Options struct {
-	// Cluster is required cluster short name or full cluster ARN.
-	Cluster string
-
 	// ServiceName filters tasks that belong to service.
 	ServiceName string
 
@@ -73,10 +72,6 @@ type Task struct {
 // New creates a Discovery.
 func New(options Options) (*Discovery, error) {
 
-	if options.Cluster == "" {
-		return nil, errors.New("Cluster is required")
-	}
-
 	if options.ServiceName == "" {
 		return nil, errors.New("ServiceName is required")
 	}
@@ -94,7 +89,8 @@ func New(options Options) (*Discovery, error) {
 	}
 
 	return &Discovery{
-		options: options,
+		options:     options,
+		clusterName: MustClusterName(),
 	}, nil
 }
 
@@ -147,7 +143,7 @@ func (d *Discovery) listTasks() []Task {
 		}
 	} else {
 		var err error
-		tasks, err = Tasks(context.TODO(), d.options.Client, d.options.Cluster, d.options.ServiceName)
+		tasks, err = Tasks(context.TODO(), d.options.Client, d.clusterName, d.options.ServiceName)
 		if err != nil {
 			errorf("%s: Tasks: error: %v", me, err)
 		}
@@ -159,7 +155,7 @@ func (d *Discovery) listTasks() []Task {
 func (d *Discovery) queryAgent() ([]Task, error) {
 	const me = "Discovery.queryAgent"
 
-	defaultURL := fmt.Sprintf(defaultAgentURL, d.options.Cluster)
+	defaultURL := fmt.Sprintf(defaultAgentURL, d.clusterName)
 
 	agentURL := d.options.AgentURL
 	if agentURL == "" {
@@ -203,14 +199,6 @@ func (d *Discovery) queryAgent() ([]Task, error) {
 	}
 
 	return tasks, nil
-}
-
-func infof(format string, a ...any) {
-	slog.Info(fmt.Sprintf(format, a...))
-}
-
-func errorf(format string, a ...any) {
-	slog.Error(fmt.Sprintf(format, a...))
 }
 
 // Tasks discovers running ECS tasks.
@@ -328,7 +316,18 @@ func findAddress(attachments []types.Attachment) string {
 	return ""
 }
 
-// FindCluster finds ECS cluster by querying container metadata.
+// MustClusterName returns ECS cluster name.
+func MustClusterName() string {
+	clusterArn, err := FindCluster()
+	if err != nil {
+		fatalf("find cluster error: %v", err)
+	}
+	// extract short cluster name from ARN
+	lastSlash := strings.LastIndexByte(clusterArn, '/')
+	return clusterArn[lastSlash+1:]
+}
+
+// FindCluster finds ECS cluster ARN by querying container metadata.
 func FindCluster() (string, error) {
 	uri := os.Getenv("ECS_CONTAINER_METADATA_URI")
 	if uri == "" {

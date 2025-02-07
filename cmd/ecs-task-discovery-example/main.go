@@ -40,22 +40,16 @@ func main() {
 		slog.Info(v)
 	}
 
-	cluster := os.Getenv("CLUSTER")
-	if cluster == "" {
-		cluster = "demo"
-	}
 	service := os.Getenv("SERVICE")
 	if service == "" {
 		service = "ecs-task-discovery-example"
 	}
 
-	slog.Info(fmt.Sprintf("CLUSTER=%s", cluster))
 	slog.Info(fmt.Sprintf("SERVICE=%s", service))
 
 	awsConfig := mustAwsConfig()
 
 	disc, err := discovery.New(discovery.Options{
-		Cluster:     cluster,
 		ServiceName: service,
 		Callback:    callback,
 		Interval:    10 * time.Second,

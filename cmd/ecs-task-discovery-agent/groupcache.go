@@ -45,7 +45,6 @@ func startGroupcache(app *application) {
 		Pool:           pool,
 		Client:         app.clientEcs,
 		GroupCachePort: app.groupcachePort,
-		Cluster:        app.clusterName,
 		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
@@ -63,31 +62,6 @@ func startGroupcache(app *application) {
 	if errDisc != nil {
 		fatalf("groupcache discovery error: %v", errDisc)
 	}
-
-	/*
-		clientsetOpt := kubeclient.Options{DebugLog: app.cfg.kubegroupDebug}
-		clientset, errClientset := kubeclient.New(clientsetOpt)
-		if errClientset != nil {
-			fatalf("startGroupcache: kubeclient: %v", errClientset)
-		}
-
-		options := kubegroup.Options{
-			Client:                clientset,
-			LabelSelector:         app.cfg.kubegroupLabelSelector,
-			Pool:                  pool,
-			GroupCachePort:        app.cfg.groupcachePort,
-			MetricsRegisterer:     app.registry,
-			MetricsGatherer:       app.registry,
-			MetricsNamespace:      app.cfg.kubegroupMetricsNamespace,
-			Debug:                 app.cfg.kubegroupDebug,
-			ForceNamespaceDefault: forceNamespaceDefault,
-		}
-
-		kg, errKg := kubegroup.UpdatePeers(options)
-		if errKg != nil {
-			log.Fatal().Msgf("kubegroup error: %v", errKg)
-		}
-	*/
 
 	//
 	// create cache
