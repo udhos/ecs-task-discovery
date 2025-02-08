@@ -1,4 +1,3 @@
-// Package groupcachediscovery implements groupcache task discovery for ECS.
 package groupcachediscovery
 
 import (

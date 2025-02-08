@@ -69,16 +69,11 @@ func startGroupcache(app *application) {
 
 	getter := groupcache.GetterFunc(
 		func(c context.Context, key string, dest groupcache.Sink) error {
-
-			const me = "groupcache.getter"
-
 			data, err := findTasks(c, app.clientEcs, app.clusterName, key)
 			if err != nil {
 				return err
 			}
-
 			expire := time.Now().Add(app.cacheTTL)
-
 			return dest.SetBytes(data, expire)
 		},
 	)
