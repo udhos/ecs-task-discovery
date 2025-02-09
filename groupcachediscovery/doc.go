@@ -3,9 +3,9 @@ Package groupcachediscovery implements groupcache task discovery for ECS.
 
 # Usage
 
-See `start groupcache peer discovery` below.
-
 ## Step 1: Start the package “ in your application
+
+See `start groupcache peer discovery` below.
 
 	//
 	// create groupcache pool
@@ -13,7 +13,7 @@ See `start groupcache peer discovery` below.
 	groupcachePort := ":5000"
 	myURL, errURL := groupcachediscovery.FindMyURL(groupcachePort)
 	if errURL != nil {
-		log.Fatalf("groupcache my URL: %v", errURL)
+	    log.Fatalf("groupcache my URL: %v", errURL)
 	}
 	workspace := groupcache.NewWorkspace()
 	pool := groupcache.NewHTTPPoolOptsWithWorkspace(workspace, myURL, &groupcache.HTTPPoolOptions{})
@@ -23,42 +23,42 @@ See `start groupcache peer discovery` below.
 	//
 	groupcacheServer := &http.Server{Addr: groupcachePort, Handler: pool}
 	go func() {
-		err := groupcacheServer.ListenAndServe()
+	    err := groupcacheServer.ListenAndServe()
 	}()
 
 	//
 	// start groupcache peer discovery
 	//
 	discOptions := groupcachediscovery.Options{
-		Pool:           pool,
-		Client:         clientEcs,
-		GroupCachePort: groupcachePort,
-		ServiceName:    "app-service-name-on-ecs", // self
+	    Pool:           pool,
+	    Client:         clientEcs,
+	    GroupCachePort: groupcachePort,
+	    ServiceName:    "app-service-name-on-ecs", // self
 	}
 	errDisc := groupcachediscovery.Run(discOptions)
 	if errDisc != nil {
-		log.Fatalf("groupcache discovery error: %v", errDisc)
+	    log.Fatalf("groupcache discovery error: %v", errDisc)
 	}
 
 	//
 	// create cache
 	//
 	getter := groupcache.GetterFunc(
-		func(c context.Context, key string, dest groupcache.Sink) error {
-			data, err := retrieveKeySomehow(key) // from DB or whatever
-			if err != nil {
-				return err
-			}
-			expire := time.Now().Add(10 * time.Minute)
-			return dest.SetBytes(data, expire)
-		},
+	    func(c context.Context, key string, dest groupcache.Sink) error {
+	        data, err := retrieveKeySomehow(key) // from DB or whatever
+	        if err != nil {
+	            return err
+	        }
+	        expire := time.Now().Add(10 * time.Minute)
+	        return dest.SetBytes(data, expire)
+	    },
 	)
 	groupcacheOptions := groupcache.Options{
-		Workspace:    workspace,
-		Name:         "my-objects",
-		PurgeExpired: true,
-		CacheBytes:   1_000_000,
-		Getter:       getter,
+	    Workspace:    workspace,
+	    Name:         "my-objects",
+	    PurgeExpired: true,
+	    CacheBytes:   1_000_000,
+	    Getter:       getter,
 	}
 	cache = groupcache.NewGroupWithWorkspace(groupcacheOptions)
 
@@ -94,7 +94,7 @@ follows:
 
 	ECS_TASK_DISCOVERY_AGENT_URL=http://{AgentServiceDiscoveryDNS}.{AgentNamespace}:8080/tasks
 
-### Agent Checklist:
+### Agent Checklist
 
   - Enable the discovery agent if possible.
 
@@ -120,7 +120,5 @@ follows:
     created in the ECS service for the agent.
 
   - Agent docker image: docker.io/udhos/ecs-task-discovery-agent:latest
-
-### Docker image
 */
 package groupcachediscovery
