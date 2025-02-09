@@ -3,7 +3,6 @@ package groupcachediscovery
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 
@@ -64,14 +63,6 @@ type Options struct {
 
 func buildURL(addr, groupcachePort string) string {
 	return "http://" + addr + groupcachePort
-}
-
-func errorf(format string, a ...any) {
-	slog.Error(fmt.Sprintf(format, a...))
-}
-
-func infof(format string, a ...any) {
-	slog.Info(fmt.Sprintf(format, a...))
 }
 
 // Run starts the discovery.
