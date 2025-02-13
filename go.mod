@@ -1,8 +1,6 @@
 module github.com/udhos/ecs-task-discovery
 
-go 1.24rc3 // minimum
-
-toolchain go1.24.0 // preferred
+go 1.24.0 // minimum
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.1
