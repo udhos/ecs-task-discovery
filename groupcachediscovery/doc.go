@@ -68,7 +68,42 @@ See `start groupcache peer discovery` below.
 	var data []byte
 	err := cache.Get(context.TODO(), "key1", groupcache.AllocatingByteSliceSink(&data))
 
-## Step 2: (Optional) Run the ecs-task-discovery-agent
+## Step 2: Task role policy
+
+The task role policy for your application on ECS should include permissions `ecs:ListTasks` and `ecs:DescribeTasks`.
+See example below.
+
+```json
+
+	{
+	    Version = "2012-10-17"
+	    Statement = [
+	      {
+	        Sid = "ecsExec",
+	        Action = [
+	          "ssmmessages:CreateControlChannel",
+	          "ssmmessages:CreateDataChannel",
+	          "ssmmessages:OpenControlChannel",
+	          "ssmmessages:OpenDataChannel",
+	        ]
+	        Effect   = "Allow"
+	        Resource = "*"
+	      },
+	      {
+	        Sid = "ecsTaskDiscovery",
+	        Action = [
+	          "ecs:ListTasks",
+	          "ecs:DescribeTasks"
+	        ]
+	        Effect   = "Allow"
+	        Resource = "*"
+	      }
+	    ]
+	  }
+
+```
+
+## Step 3: (Optional) Run the ecs-task-discovery-agent
 
 Running the agent `ecs-task-discovery-agent` on the same ECS cluster as your
 application is optional but recommended.
@@ -118,6 +153,8 @@ follows:
 
     {AgentNamespace}: replace with the namespace used in the service discovery
     created in the ECS service for the agent.
+
+  - The task role policy for the agent on ECS should include permissions `ecs:ListTasks` and `ecs:DescribeTasks`.
 
   - Agent docker image: docker.io/udhos/ecs-task-discovery-agent:latest
 */
