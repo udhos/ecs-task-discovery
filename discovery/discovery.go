@@ -224,8 +224,8 @@ func Tasks(ctx context.Context, clientEcs *ecs.Client, cluster, serviceName stri
 		if errList != nil {
 			return nil, errList
 		}
-		slog.Info(fmt.Sprintf("Tasks: ListTasks: cluster=%s service=%s found %d of maxResults=%d tasks",
-			cluster, serviceName, len(out.TaskArns), maxResults))
+		infof("Tasks: ListTasks: cluster=%s service=%s found %d of maxResults=%d tasks",
+			cluster, serviceName, len(out.TaskArns), maxResults)
 
 		list, errDesc := describeTasks(ctx, clientEcs, cluster, out.TaskArns)
 		if errDesc != nil {
@@ -348,19 +348,9 @@ func FindCluster() (string, error) {
 	if err := json.Unmarshal(body, &metadata); err != nil {
 		return "", fmt.Errorf("status:%d uri:%s json_error:%v", resp.StatusCode, uri, err)
 	}
-	/*
-
-		const labelKey = "com.amazonaws.ecs.cluster"
-		clusterArn, found := metadata.Labels[labelKey]
-		if !found {
-			return "", fmt.Errorf("status:%d uri:%s missing label %s in metadata", resp.StatusCode, uri, labelKey)
-		}
-				return clusterArn, nil
-	*/
 	return metadata.Cluster, nil
 }
 
 type metadataFormat struct {
-	//Labels map[string]string `json:"Labels"`
 	Cluster string `json:"Cluster"`
 }
