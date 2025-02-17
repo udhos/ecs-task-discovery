@@ -73,7 +73,7 @@ type Task struct {
 func New(options Options) (*Discovery, error) {
 
 	if options.ServiceName == "" {
-		return nil, errors.New("ServiceName is required")
+		return nil, errors.New("option ServiceName is required")
 	}
 
 	if options.Interval == 0 {
@@ -81,11 +81,11 @@ func New(options Options) (*Discovery, error) {
 	}
 
 	if options.Callback == nil {
-		return nil, errors.New("Callback is required")
+		return nil, errors.New("option Callback is required")
 	}
 
 	if options.Client == nil {
-		return nil, errors.New("Client is required")
+		return nil, errors.New("option Client is required")
 	}
 
 	return &Discovery{
@@ -269,16 +269,6 @@ func describeTasks(ctx context.Context, clientEcs *ecs.Client, cluster string, t
 				"healthStatus", t.HealthStatus,
 				"lastStatus", aws.ToString(t.LastStatus),
 			)
-		case len(t.Attachments) == 1:
-			// quiet
-		default:
-			// log only
-			slog.Error(fmt.Sprintf("describeTasks: task has multiple network attachments: %d",
-				len(t.Attachments)),
-				"ARN", aws.ToString(t.TaskArn),
-				"healthStatus", t.HealthStatus,
-				"lastStatus", aws.ToString(t.LastStatus),
-			)
 		}
 
 		addr := findAddress(t.Attachments)
@@ -288,6 +278,7 @@ func describeTasks(ctx context.Context, clientEcs *ecs.Client, cluster string, t
 				"ARN", aws.ToString(t.TaskArn),
 				"healthStatus", t.HealthStatus,
 				"lastStatus", aws.ToString(t.LastStatus),
+				"networkAttachments", len(t.Attachments),
 			)
 			continue // actual error: missing address
 		}

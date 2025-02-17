@@ -23,7 +23,7 @@ RUN go build -o /tmp/ecs-task-discovery-agent ./cmd/ecs-task-discovery-agent
 #
 # curl: https://security.alpinelinux.org/srcpkg/curl
 #
-FROM alpine:3.21.2
+FROM alpine:3.21.3
 COPY --from=builder /tmp/ecs-task-discovery-agent /bin/ecs-task-discovery-agent
 #RUN apk add curl=8.1.2-r0 libcrypto3=3.1.0-r4 libssl3=3.1.0-r4
 RUN apk update && \
