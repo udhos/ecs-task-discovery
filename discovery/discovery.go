@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -98,21 +99,33 @@ func New(options Options) (*Discovery, error) {
 func (d *Discovery) Run() {
 	const me = "Discovery.Run"
 
+	var savedTasks []Task
+
 	for {
 		begin := time.Now()
 
 		tasks := d.listTasks()
 
-		elapsed := time.Since(begin)
-
-		infof("%s: forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d elapsed=%v",
-			me, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), elapsed)
+		var changed bool
 
 		if len(tasks) > 0 {
-			d.options.Callback(tasks) // deliver result
+			//
+			// found at least 1 task, task discovery succeeded
+			//
+			slices.SortFunc(tasks, func(a, b Task) int { return strings.Compare(a.Address, b.Address) })
+			changed = !slices.Equal(tasks, savedTasks)
+			if changed {
+				// task list has changed
+				savedTasks = tasks
+				d.options.Callback(tasks) // deliver result
+			}
 		}
 
-		infof("%s: sleeping %v", me, d.options.Interval)
+		elapsed := time.Since(begin)
+
+		infof("%s: forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
+			me, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
+
 		time.Sleep(d.options.Interval)
 	}
 }
