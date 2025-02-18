@@ -2,12 +2,14 @@ package groupcachediscovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/groupcache/groupcache-go/v3/transport/peer"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/udhos/ecs-task-discovery/discovery"
 )
 
@@ -59,6 +61,17 @@ type Options struct {
 	// The task discovery agent sets DisableAgentQuery to true in order to not query itself.
 	// Most applications should leave it undefined (set to false).
 	DisableAgentQuery bool
+
+	// MetricsNamespace provides optional namespace for prometheus metrics.
+	// Defaults to empty.
+	MetricsNamespace string
+
+	// MetricsSubsystem provides optional subsystem for prometheus metrics.
+	// Defaults to "groupcache".
+	MetricsSubsystem string
+
+	// MetricsRegisterer is required registerer for prometheus metrics.
+	MetricsRegisterer prometheus.Registerer
 }
 
 func buildURL(addr, groupcachePort string) string {
@@ -70,10 +83,20 @@ func Run(options Options) error {
 
 	const me = "groupcachediscovery.Run: callback"
 
+	if options.MetricsRegisterer == nil {
+		return errors.New("option MetricsRegisterer is nil")
+	}
+
+	if options.MetricsSubsystem == "" {
+		options.MetricsSubsystem = "groupcache"
+	}
+
 	myAddr, errAddr := FindMyAddr()
 	if errAddr != nil {
 		return errAddr
 	}
+
+	m := newMetrics(options.MetricsNamespace, options.MetricsSubsystem, options.MetricsRegisterer)
 
 	callback := func(tasks []discovery.Task) {
 
@@ -125,6 +148,8 @@ func Run(options Options) error {
 			options.Pool.Set(peers...)
 		}
 
+		m.events.Inc()
+		m.peers.Set(float64(size))
 	}
 
 	disc, err := discovery.New(discovery.Options{

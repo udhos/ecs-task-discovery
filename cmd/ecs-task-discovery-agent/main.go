@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/modernprogram/groupcache/v2"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/udhos/boilerplate/awsconfig"
 	"github.com/udhos/boilerplate/boilerplate"
 
@@ -38,6 +40,7 @@ type application struct {
 	clientEcs        *ecs.Client
 	groupcacheServer *http.Server
 	cache            *groupcache.Group
+	registry         *prometheus.Registry
 }
 
 func main() {
@@ -79,6 +82,7 @@ func main() {
 		forceSingleTask:              envBool("FORCE_SINGLE_TASK", false),
 
 		awsConfig: mustAwsConfig(),
+		registry:  prometheus.NewRegistry(),
 	}
 
 	app.clientEcs = ecs.NewFromConfig(app.awsConfig)
@@ -90,6 +94,31 @@ func main() {
 	//
 
 	startGroupcache(app)
+
+	//
+	// start metrics server
+	//
+
+	{
+		/*
+			log.Info().Msgf("registering metrics route: %s %s",
+				app.cfg.metricsAddr, app.cfg.metricsPath)
+
+			mux := http.NewServeMux()
+			app.serverMetrics = &http.Server{Addr: app.cfg.metricsAddr, Handler: mux}
+		*/
+		http.Handle("/metrics", app.metricsHandler())
+		/*
+			mux.Handle(app.cfg.metricsPath, )
+
+			go func() {
+				log.Info().Msgf("metrics server: listening on %s %s",
+					app.cfg.metricsAddr, app.cfg.metricsPath)
+				err := app.serverMetrics.ListenAndServe()
+				log.Error().Msgf("metrics server: exited: %v", err)
+			}()
+		*/
+	}
 
 	//
 	// start server
@@ -173,4 +202,12 @@ func findTasks(ctx context.Context, clientEcs *ecs.Client, clusterName, serviceN
 		me, serviceName, elapsed, len(tasks)))
 
 	return data, nil
+}
+
+func (app *application) metricsHandler() http.Handler {
+	registerer := app.registry
+	gatherer := app.registry
+	return promhttp.InstrumentMetricHandler(
+		registerer, promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}),
+	)
 }

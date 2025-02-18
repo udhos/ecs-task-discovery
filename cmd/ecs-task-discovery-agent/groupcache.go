@@ -7,6 +7,8 @@ import (
 
 	"github.com/modernprogram/groupcache/v2"
 	"github.com/udhos/ecs-task-discovery/groupcachediscovery"
+	"github.com/udhos/groupcache_exporter"
+	"github.com/udhos/groupcache_exporter/groupcache/modernprogram"
 )
 
 func startGroupcache(app *application) {
@@ -41,6 +43,8 @@ func startGroupcache(app *application) {
 	// start groupcache peer discovery
 	//
 
+	metricsNamespace := ""
+
 	discOptions := groupcachediscovery.Options{
 		Pool:           pool,
 		Client:         app.clientEcs,
@@ -48,6 +52,8 @@ func startGroupcache(app *application) {
 		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
+		MetricsNamespace:  metricsNamespace,
+		MetricsRegisterer: app.registry,
 	}
 
 	if app.forceSingleTask {
@@ -94,11 +100,8 @@ func startGroupcache(app *application) {
 	//
 	// expose prometheus metrics for groupcache
 	//
-	/*
-		g := modernprogram.New(app.cache)
-		labels := map[string]string{}
-		namespace := ""
-		collector := groupcache_exporter.NewExporter(namespace, labels, g)
-		app.registry.MustRegister(collector)
-	*/
+	g := modernprogram.New(app.cache)
+	labels := map[string]string{}
+	collector := groupcache_exporter.NewExporter(metricsNamespace, labels, g)
+	app.registry.MustRegister(collector)
 }
