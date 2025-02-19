@@ -35,6 +35,8 @@ type application struct {
 	cacheTTL                     time.Duration
 	ecsTaskDiscoveryAgentService string
 	forceSingleTask              bool
+	metricsPath                  string
+	healthPath                   string
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -80,6 +82,8 @@ func main() {
 		cacheTTL:                     envDuration("CACHE_TTL", 20*time.Second),
 		ecsTaskDiscoveryAgentService: envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
 		forceSingleTask:              envBool("FORCE_SINGLE_TASK", false),
+		metricsPath:                  envString("METRICS_PATH", "/metrics"),
+		healthPath:                   envString("HEALTH_PATH", "/health"),
 
 		awsConfig: mustAwsConfig(),
 		registry:  prometheus.NewRegistry(),
@@ -96,6 +100,12 @@ func main() {
 	startGroupcache(app)
 
 	//
+	// start health check
+	//
+
+	http.HandleFunc(app.healthPath, handlerHealth)
+
+	//
 	// start metrics server
 	//
 
@@ -107,7 +117,7 @@ func main() {
 			mux := http.NewServeMux()
 			app.serverMetrics = &http.Server{Addr: app.cfg.metricsAddr, Handler: mux}
 		*/
-		http.Handle("/metrics", app.metricsHandler())
+		http.Handle(app.metricsPath, app.metricsHandler())
 		/*
 			mux.Handle(app.cfg.metricsPath, )
 
@@ -131,6 +141,10 @@ func main() {
 	slog.Info(fmt.Sprintf("listening on HTTP %s", app.listenAddr))
 	err := http.ListenAndServe(app.listenAddr, nil)
 	fatalf("listen error: %v", err)
+}
+
+func handlerHealth(w http.ResponseWriter, _ *http.Request) {
+	fmt.Fprintln(w, "ok")
 }
 
 func mustAwsConfig() aws.Config {
