@@ -123,8 +123,8 @@ func (d *Discovery) Run() {
 
 		elapsed := time.Since(begin)
 
-		infof("%s: forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
-			me, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
+		infof("%s: cluster=%s service=%s forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
+			me, d.clusterName, d.options.ServiceName, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
 
 		time.Sleep(d.options.Interval)
 	}
@@ -139,10 +139,12 @@ func (d *Discovery) listTasks() []Task {
 		var err error
 		tasks, err = d.queryAgent()
 		if err == nil {
-			infof("%s: query agent: %d tasks", me, len(tasks))
+			infof("%s: query agent: cluster=%s service=%s tasks=%d",
+				d.clusterName, d.options.ServiceName, me, len(tasks))
 			return tasks
 		}
-		errorf("%s: query agent error: %v", me, err)
+		errorf("%s: query agent error: cluster=%s service=%s tasks=%d: %v",
+			d.clusterName, d.options.ServiceName, me, len(tasks), err)
 	}
 
 	if d.options.ForceSingleTask != "" {
@@ -158,7 +160,8 @@ func (d *Discovery) listTasks() []Task {
 		var err error
 		tasks, err = Tasks(context.TODO(), d.options.Client, d.clusterName, d.options.ServiceName)
 		if err != nil {
-			errorf("%s: Tasks: error: %v", me, err)
+			errorf("%s: Tasks error: cluster=%s service=%s: %v",
+				d.clusterName, d.options.ServiceName, me, err)
 		}
 	}
 

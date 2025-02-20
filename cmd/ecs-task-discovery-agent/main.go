@@ -174,8 +174,8 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	elapsed := time.Since(begin)
 
-	infof("%s: service=%s elapsed=%v",
-		me, serviceName, elapsed)
+	infof("%s: cluster=%s service=%s elapsed=%v",
+		me, app.clusterName, serviceName, elapsed)
 
 	if err != nil {
 		msg := fmt.Sprintf("%s: error: %v",

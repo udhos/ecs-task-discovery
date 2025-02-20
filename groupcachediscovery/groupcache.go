@@ -102,7 +102,7 @@ func Run(options Options) error {
 
 		size := len(tasks)
 
-		infof("%s: %d tasks", me, size)
+		infof("%s: service=%s tasks=%d", me, options.ServiceName, size)
 
 		if size == 0 {
 			return
