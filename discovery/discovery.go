@@ -161,7 +161,7 @@ func (d *Discovery) listTasks() []Task {
 		tasks, err = Tasks(context.TODO(), d.options.Client, d.clusterName, d.options.ServiceName)
 		if err != nil {
 			errorf("%s: Tasks error: cluster=%s service=%s: %v",
-				d.clusterName, d.options.ServiceName, me, err)
+				me, d.clusterName, d.options.ServiceName, err)
 		}
 	}
 
