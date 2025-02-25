@@ -11,7 +11,7 @@ import (
 	"github.com/udhos/groupcache_exporter/groupcache/modernprogram"
 )
 
-func startGroupcache(app *application) {
+func startGroupcache(app *application) func() {
 
 	workspace := groupcache.NewWorkspace()
 
@@ -64,7 +64,7 @@ func startGroupcache(app *application) {
 		discOptions.ForceSingleTask = myAddr
 	}
 
-	errDisc := groupcachediscovery.Run(discOptions)
+	disc, errDisc := groupcachediscovery.New(discOptions)
 	if errDisc != nil {
 		fatalf("groupcache discovery error: %v", errDisc)
 	}
@@ -104,4 +104,6 @@ func startGroupcache(app *application) {
 	labels := map[string]string{}
 	collector := groupcache_exporter.NewExporter(metricsNamespace, labels, g)
 	app.registry.MustRegister(collector)
+
+	return func() { disc.Stop() }
 }

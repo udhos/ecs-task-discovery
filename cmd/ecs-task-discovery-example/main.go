@@ -22,7 +22,9 @@ func main() {
 	// command-line
 	//
 	var showVersion bool
+	var repeat int
 	flag.BoolVar(&showVersion, "version", showVersion, "show version")
+	flag.IntVar(&repeat, "repeat", repeat, "repeat count")
 	flag.Parse()
 
 	me := filepath.Base(os.Args[0])
@@ -49,16 +51,31 @@ func main() {
 
 	awsConfig := mustAwsConfig()
 
-	disc, err := discovery.New(discovery.Options{
-		ServiceName: service,
-		Callback:    callback,
-		Interval:    10 * time.Second,
-		Client:      ecs.NewFromConfig(awsConfig),
-	})
-	if err != nil {
-		fatalf("discovery.New: error: %v", err)
+	var count int
+
+	for ; ; repeat-- {
+		disc, err := discovery.New(discovery.Options{
+			ServiceName: service,
+			Callback:    callback,
+			Interval:    10 * time.Second,
+			Client:      ecs.NewFromConfig(awsConfig),
+		})
+		if err != nil {
+			fatalf("discovery.New: error: %v", err)
+		}
+		if repeat > 0 {
+			count++
+			if count%10000 == 0 {
+				slog.Info("loop", "count", count, "repeat", repeat)
+			}
+			disc.Stop()
+			continue
+		}
+		if repeat == 0 {
+			break
+		}
 	}
-	go disc.Run()
+
 	select {} // wait forever
 }
 

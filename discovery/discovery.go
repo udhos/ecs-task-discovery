@@ -24,6 +24,7 @@ import (
 type Discovery struct {
 	options     Options
 	clusterName string
+	done        chan struct{}
 }
 
 // Options define settings for creating a Discovery.
@@ -89,45 +90,62 @@ func New(options Options) (*Discovery, error) {
 		return nil, errors.New("option Client is required")
 	}
 
-	return &Discovery{
+	d := &Discovery{
 		options:     options,
 		clusterName: MustClusterName(),
-	}, nil
+		done:        make(chan struct{}),
+	}
+
+	go d.run()
+
+	return d, nil
 }
 
-// Run runs a Discovery.
-func (d *Discovery) Run() {
-	const me = "Discovery.Run"
+// Stop stops discovery to release resources.
+func (d *Discovery) Stop() {
+	close(d.done)
+}
+
+// run runs a Discovery.
+func (d *Discovery) run() {
+	const me = "Discovery.run"
 
 	var savedTasks []Task
 
+LOOP:
 	for {
-		begin := time.Now()
+		select {
+		case <-d.done:
+			break LOOP
+		default:
+			begin := time.Now()
 
-		tasks := d.listTasks()
+			tasks := d.listTasks()
 
-		var changed bool
+			var changed bool
 
-		if len(tasks) > 0 {
-			//
-			// found at least 1 task, task discovery succeeded
-			//
-			slices.SortFunc(tasks, func(a, b Task) int { return strings.Compare(a.Address, b.Address) })
-			changed = !slices.Equal(tasks, savedTasks)
-			if changed {
-				// task list has changed
-				savedTasks = tasks
-				d.options.Callback(tasks) // deliver result
+			if len(tasks) > 0 {
+				//
+				// found at least 1 task, task discovery succeeded
+				//
+				slices.SortFunc(tasks, func(a, b Task) int { return strings.Compare(a.Address, b.Address) })
+				changed = !slices.Equal(tasks, savedTasks)
+				if changed {
+					// task list has changed
+					savedTasks = tasks
+					d.options.Callback(tasks) // deliver result
+				}
 			}
+
+			elapsed := time.Since(begin)
+
+			infof("%s: cluster=%s service=%s forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
+				me, d.clusterName, d.options.ServiceName, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
+
+			time.Sleep(d.options.Interval)
 		}
-
-		elapsed := time.Since(begin)
-
-		infof("%s: cluster=%s service=%s forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
-			me, d.clusterName, d.options.ServiceName, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
-
-		time.Sleep(d.options.Interval)
 	}
+
 }
 
 func (d *Discovery) listTasks() []Task {

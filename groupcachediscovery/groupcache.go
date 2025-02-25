@@ -78,13 +78,23 @@ func buildURL(addr, groupcachePort string) string {
 	return "http://" + addr + groupcachePort
 }
 
-// Run starts the discovery.
-func Run(options Options) error {
+// Discovery represents a groupcache discovery.
+type Discovery struct {
+	disc *discovery.Discovery
+}
+
+// Stop stops discvoery to release resources.
+func (d *Discovery) Stop() {
+	d.disc.Stop()
+}
+
+// New starts the discovery.
+func New(options Options) (*Discovery, error) {
 
 	const me = "groupcachediscovery.Run: callback"
 
 	if options.MetricsRegisterer == nil {
-		return errors.New("option MetricsRegisterer is nil")
+		return nil, errors.New("option MetricsRegisterer is nil")
 	}
 
 	if options.MetricsSubsystem == "" {
@@ -93,7 +103,7 @@ func Run(options Options) error {
 
 	myAddr, errAddr := FindMyAddr()
 	if errAddr != nil {
-		return errAddr
+		return nil, errAddr
 	}
 
 	m := newMetrics(options.MetricsNamespace, options.MetricsSubsystem, options.MetricsRegisterer)
@@ -159,13 +169,12 @@ func Run(options Options) error {
 		ForceSingleTask:   options.ForceSingleTask,
 		DisableAgentQuery: options.DisableAgentQuery,
 	})
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	go disc.Run()
-
-	return nil
+	return &Discovery{disc: disc}, nil
 }
 
 // FindMyURL returns my URL for groupcache pool.
