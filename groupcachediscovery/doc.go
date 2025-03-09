@@ -3,7 +3,7 @@ Package groupcachediscovery implements groupcache task discovery for ECS.
 
 # Usage
 
-## Step 1: Start the package “ in your application
+## Step 1: Start the package `groupcachediscovery` in your application
 
 See `start groupcache peer discovery` below.
 
