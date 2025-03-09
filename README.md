@@ -8,6 +8,14 @@
 
 [ecs-task-discovery](https://github.com/udhos/ecs-task-discovery?tab=readme-ov-file) is a Go module that performs service discovery for ECS tasks.
 
+# Groupcache Task Discovery
+
+The package [groupcachediscovery](https://pkg.go.dev/github.com/udhos/ecs-task-discovery/groupcachediscovery) implements task discovery for groupcache-enabled applications running on AWS ECS.
+
+See package documentation here: [groupcachediscovery](https://pkg.go.dev/github.com/udhos/ecs-task-discovery/groupcachediscovery)
+
+Find an example toy application using [groupcache](https://github.com/modernprogram/groupcache) with [groupcachediscovery](https://pkg.go.dev/github.com/udhos/ecs-task-discovery/groupcachediscovery) here: https://github.com/udhos/kubecache/blob/main/cmd/kubecache/groupcache.go
+
 # Usage
 
 See example: [./cmd/ecs-task-discovery-example/main.go](./cmd/ecs-task-discovery-example/main.go)
