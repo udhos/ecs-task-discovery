@@ -4,12 +4,12 @@ go 1.24.1 // minimum
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.54.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.54.2
 	github.com/groupcache/groupcache-go/v3 v3.2.0
-	github.com/modernprogram/groupcache/v2 v2.6.9
+	github.com/modernprogram/groupcache/v2 v2.6.10
 	github.com/prometheus/client_golang v1.21.1
-	github.com/udhos/boilerplate v1.6.3
-	github.com/udhos/groupcache_exporter v1.0.8
+	github.com/udhos/boilerplate v1.6.6
+	github.com/udhos/groupcache_exporter v1.0.9
 )
 
 require (
@@ -32,7 +32,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
+	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	golang.org/x/sys v0.31.0 // indirect

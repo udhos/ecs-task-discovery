@@ -191,6 +191,7 @@ func FindMyURL(groupcachePort string) (string, error) {
 
 // FindMyAddr returns our local IP address.
 func FindMyAddr() (string, error) {
+	const me = "FindMyAddr"
 	host, errHost := os.Hostname()
 	if errHost != nil {
 		return "", errHost
@@ -200,11 +201,12 @@ func FindMyAddr() (string, error) {
 		return "", errAddr
 	}
 	if len(addrs) < 1 {
-		return "", fmt.Errorf("findMyAddr: hostname '%s': no addr found", host)
+		return "", fmt.Errorf("%s: hostname '%s': no addr found", me, host)
 	}
 	addr := addrs[0]
 	if len(addrs) > 1 {
-		return addr, fmt.Errorf("findMyAddr: hostname '%s': found multiple addresses: %v", host, addrs)
+		return addr, fmt.Errorf("%s: hostname '%s': found multiple addresses: %v",
+			me, host, addrs)
 	}
 	return addr, nil
 }
