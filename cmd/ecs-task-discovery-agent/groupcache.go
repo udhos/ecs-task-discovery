@@ -85,11 +85,12 @@ func startGroupcache(app *application) func() {
 	)
 
 	groupcacheOptions := groupcache.Options{
-		Workspace:    workspace,
-		Name:         "tasks",
-		PurgeExpired: app.groupcachePurgeExpired,
-		CacheBytes:   app.groupcacheSizeBytes,
-		Getter:       getter,
+		Workspace:                   workspace,
+		Name:                        "tasks",
+		PurgeExpired:                app.groupcachePurgeExpired,
+		ExpiredKeysEvictionInterval: app.groupcacheExpiredKeysEvictionInterval,
+		CacheBytesLimit:             app.groupcacheSizeBytes,
+		Getter:                      getter,
 	}
 
 	// https://talks.golang.org/2013/oscon-dl.slide#46

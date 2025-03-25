@@ -26,17 +26,18 @@ import (
 )
 
 type application struct {
-	clusterName                  string
-	listenAddr                   string
-	groupcachePort               string
-	groupcachePurgeExpired       bool
-	groupcacheSizeBytes          int64
-	groupcacheEnable             bool
-	cacheTTL                     time.Duration
-	ecsTaskDiscoveryAgentService string
-	forceSingleTask              bool
-	metricsPath                  string
-	healthPath                   string
+	clusterName                           string
+	listenAddr                            string
+	groupcachePort                        string
+	groupcachePurgeExpired                bool
+	groupcacheExpiredKeysEvictionInterval time.Duration
+	groupcacheSizeBytes                   int64
+	groupcacheEnable                      bool
+	cacheTTL                              time.Duration
+	ecsTaskDiscoveryAgentService          string
+	forceSingleTask                       bool
+	metricsPath                           string
+	healthPath                            string
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -73,17 +74,18 @@ func main() {
 	//
 
 	app := &application{
-		clusterName:                  discovery.MustClusterName(),
-		listenAddr:                   envString("LISTEN_ADDR", ":8080"),
-		groupcachePort:               envString("GROUPCACHE_PORT", ":5000"),
-		groupcachePurgeExpired:       envBool("GROUPCACHE_PURGE_EXPIRED", true),
-		groupcacheSizeBytes:          envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
-		groupcacheEnable:             envBool("GROUPCACHE_ENABLE", true),
-		cacheTTL:                     envDuration("CACHE_TTL", 20*time.Second),
-		ecsTaskDiscoveryAgentService: envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
-		forceSingleTask:              envBool("FORCE_SINGLE_TASK", false),
-		metricsPath:                  envString("METRICS_PATH", "/metrics"),
-		healthPath:                   envString("HEALTH_PATH", "/health"),
+		clusterName:                           discovery.MustClusterName(),
+		listenAddr:                            envString("LISTEN_ADDR", ":8080"),
+		groupcachePort:                        envString("GROUPCACHE_PORT", ":5000"),
+		groupcachePurgeExpired:                envBool("GROUPCACHE_PURGE_EXPIRED", true),
+		groupcacheExpiredKeysEvictionInterval: envDuration("GROUPCACHE_EXPIRED_KEYS_EVICTION_INTERVAL", 30*time.Minute),
+		groupcacheSizeBytes:                   envInt64("GROUPCACHE_SIZE_BYTES", 1_000_000),
+		groupcacheEnable:                      envBool("GROUPCACHE_ENABLE", true),
+		cacheTTL:                              envDuration("CACHE_TTL", 20*time.Second),
+		ecsTaskDiscoveryAgentService:          envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
+		forceSingleTask:                       envBool("FORCE_SINGLE_TASK", false),
+		metricsPath:                           envString("METRICS_PATH", "/metrics"),
+		healthPath:                            envString("HEALTH_PATH", "/health"),
 
 		awsConfig: mustAwsConfig(),
 		registry:  prometheus.NewRegistry(),
