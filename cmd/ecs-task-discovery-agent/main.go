@@ -169,9 +169,11 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	begin := time.Now()
 
 	if app.groupcacheEnable {
-		err = app.cache.Get(context.TODO(), serviceName, groupcache.AllocatingByteSliceSink(&data))
+		err = app.cache.Get(context.TODO(), serviceName,
+			groupcache.AllocatingByteSliceSink(&data), nil)
 	} else {
-		data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName, serviceName)
+		data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName,
+			serviceName)
 	}
 
 	elapsed := time.Since(begin)

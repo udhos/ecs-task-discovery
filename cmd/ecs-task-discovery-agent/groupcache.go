@@ -74,7 +74,7 @@ func startGroupcache(app *application) func() {
 	//
 
 	getter := groupcache.GetterFunc(
-		func(c context.Context, key string, dest groupcache.Sink) error {
+		func(c context.Context, key string, dest groupcache.Sink, _ *groupcache.Info) error {
 			data, err := findTasks(c, app.clientEcs, app.clusterName, key)
 			if err != nil {
 				return err
