@@ -38,6 +38,7 @@ type application struct {
 	forceSingleTask                       bool
 	metricsPath                           string
 	healthPath                            string
+	dogstatsdEnable                       bool
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -86,6 +87,7 @@ func main() {
 		forceSingleTask:                       envBool("FORCE_SINGLE_TASK", false),
 		metricsPath:                           envString("METRICS_PATH", "/metrics"),
 		healthPath:                            envString("HEALTH_PATH", "/health"),
+		dogstatsdEnable:                       envBool("DOGSTATSD_ENABLE", true),
 
 		awsConfig: mustAwsConfig(),
 		registry:  prometheus.NewRegistry(),
@@ -206,18 +208,18 @@ func findTasks(ctx context.Context, clientEcs *ecs.Client, clusterName, serviceN
 	elapsed := time.Since(begin)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: service=%s elapsed=%v error:%v",
-			me, serviceName, elapsed, err)
+		return nil, fmt.Errorf("%s: cluster=%s service=%s elapsed=%v error:%v",
+			me, clusterName, serviceName, elapsed, err)
 	}
 
 	data, errJSON := json.Marshal(tasks)
 	if errJSON != nil {
-		return nil, fmt.Errorf("%s: service=%s elapsed=%v error:%v",
-			me, serviceName, elapsed, errJSON)
+		return nil, fmt.Errorf("%s: cluster=%s service=%s elapsed=%v error:%v",
+			me, clusterName, serviceName, elapsed, errJSON)
 	}
 
-	slog.Info(fmt.Sprintf("%s: service=%s elapsed=%v found %d tasks",
-		me, serviceName, elapsed, len(tasks)))
+	slog.Info(fmt.Sprintf("%s: cluster=%s service=%s elapsed=%v found %d tasks",
+		me, clusterName, serviceName, elapsed, len(tasks)))
 
 	return data, nil
 }

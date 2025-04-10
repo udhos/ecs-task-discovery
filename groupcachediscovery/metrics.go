@@ -1,6 +1,10 @@
 package groupcachediscovery
 
 import (
+	"fmt"
+	"log/slog"
+
+	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -8,10 +12,53 @@ import (
 type metrics struct {
 	peers  prometheus.Gauge
 	events prometheus.Counter
+
+	dogstatsdClient *statsd.Client
+	sampleRate      float64
+	extraTags       []string
 }
 
-func newMetrics(namespace, subsystem string, registerer prometheus.Registerer) *metrics {
-	m := &metrics{}
+func (m *metrics) update(peers int) {
+
+	peersFloat64 := float64(peers)
+
+	//
+	// Prometheus
+	//
+	if m.events != nil {
+		m.events.Inc()
+	}
+	if m.peers != nil {
+		m.peers.Set(peersFloat64)
+	}
+
+	//
+	// Dogstatsd
+	//
+	if m.dogstatsdClient != nil {
+		if err := m.dogstatsdClient.Count("events", 1, m.extraTags, m.sampleRate); err != nil {
+			slog.Error(fmt.Sprintf("metrics.update: Count error: %v", err))
+		}
+		if err := m.dogstatsdClient.Gauge("peers", peersFloat64, m.extraTags, m.sampleRate); err != nil {
+			slog.Error(fmt.Sprintf("metrics.update: Gauge error: %v", err))
+		}
+	}
+}
+
+func newMetrics(namespace string, registerer prometheus.Registerer,
+	client *statsd.Client, dogstatsdExtraTags []string) *metrics {
+
+	m := &metrics{
+		dogstatsdClient: client,
+		extraTags:       dogstatsdExtraTags,
+		sampleRate:      1,
+	}
+
+	if registerer == nil {
+		return m
+	}
+
+	const subsystem = "groupcachediscovery"
 
 	m.peers = newGauge(
 		registerer,

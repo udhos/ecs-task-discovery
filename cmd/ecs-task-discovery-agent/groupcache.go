@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/modernprogram/groupcache/v2"
+	"github.com/udhos/dogstatsdclient/dogstatsdclient"
 	"github.com/udhos/ecs-task-discovery/groupcachediscovery"
 	"github.com/udhos/groupcache_exporter"
 	"github.com/udhos/groupcache_exporter/groupcache/modernprogram"
@@ -54,6 +55,17 @@ func startGroupcache(app *application) func() {
 		DisableAgentQuery: true, // do not query ourselves
 		MetricsNamespace:  metricsNamespace,
 		MetricsRegisterer: app.registry,
+	}
+
+	if app.dogstatsdEnable {
+		client, errClient := dogstatsdclient.New(dogstatsdclient.Options{
+			Namespace: "kubegroup",
+			Debug:     true,
+		})
+		if errClient != nil {
+			fatalf("dogstatsd client: %v", errClient)
+		}
+		discOptions.DogstatsdClient = client
 	}
 
 	if app.forceSingleTask {

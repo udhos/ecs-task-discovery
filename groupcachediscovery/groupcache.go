@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/groupcache/groupcache-go/v3/transport/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,6 +71,11 @@ type Options struct {
 	// Defaults to "groupcache".
 	MetricsSubsystem string
 
+	// DogstatsdClient optionally sends metrics to Datadog Dogstatsd.
+	DogstatsdClient *statsd.Client
+
+	DogstatsdExtraTags []string
+
 	// MetricsRegisterer is required registerer for prometheus metrics.
 	MetricsRegisterer prometheus.Registerer
 }
@@ -106,7 +112,9 @@ func New(options Options) (*Discovery, error) {
 		return nil, errAddr
 	}
 
-	m := newMetrics(options.MetricsNamespace, options.MetricsSubsystem, options.MetricsRegisterer)
+	m := newMetrics(options.MetricsNamespace,
+		options.MetricsRegisterer, options.DogstatsdClient,
+		options.DogstatsdExtraTags)
 
 	callback := func(tasks []discovery.Task) {
 
@@ -158,8 +166,7 @@ func New(options Options) (*Discovery, error) {
 			options.Pool.Set(peers...)
 		}
 
-		m.events.Inc()
-		m.peers.Set(float64(size))
+		m.update(size) // update metrics
 	}
 
 	disc, err := discovery.New(discovery.Options{
