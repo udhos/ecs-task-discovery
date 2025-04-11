@@ -2,7 +2,6 @@ package groupcachediscovery
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -72,7 +71,7 @@ type Options struct {
 
 	DogstatsdExtraTags []string
 
-	// MetricsRegisterer is required registerer for prometheus metrics.
+	// MetricsRegisterer optionally sends metrics to Prometheus.
 	MetricsRegisterer prometheus.Registerer
 }
 
@@ -94,10 +93,6 @@ func (d *Discovery) Stop() {
 func New(options Options) (*Discovery, error) {
 
 	const me = "groupcachediscovery.Run: callback"
-
-	if options.MetricsRegisterer == nil {
-		return nil, errors.New("option MetricsRegisterer is nil")
-	}
 
 	myAddr, errAddr := FindMyAddr()
 	if errAddr != nil {

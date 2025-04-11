@@ -57,7 +57,10 @@ func startGroupcache(app *application) func() {
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
 		MetricsNamespace:  groupcacheDiscoveryMetricsNamespace,
-		MetricsRegisterer: app.registry,
+	}
+
+	if app.prometheusEnable {
+		discOptions.MetricsRegisterer = app.registry
 	}
 
 	if app.dogstatsdEnable {
@@ -113,13 +116,15 @@ func startGroupcache(app *application) func() {
 	// 64 MB max per-node memory usage
 	app.cache = groupcache.NewGroupWithWorkspace(groupcacheOptions)
 
-	//
-	// expose prometheus metrics for groupcache
-	//
-	g := modernprogram.New(app.cache)
-	labels := map[string]string{}
-	collector := groupcache_exporter.NewExporter(groupcacheMetricsNamespace, labels, g)
-	app.registry.MustRegister(collector)
+	if app.prometheusEnable {
+		//
+		// expose prometheus metrics for groupcache
+		//
+		g := modernprogram.New(app.cache)
+		labels := map[string]string{}
+		collector := groupcache_exporter.NewExporter(groupcacheMetricsNamespace, labels, g)
+		app.registry.MustRegister(collector)
+	}
 
 	return func() { disc.Stop() }
 }

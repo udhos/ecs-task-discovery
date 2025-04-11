@@ -39,6 +39,7 @@ type application struct {
 	metricsPath                           string
 	healthPath                            string
 	dogstatsdEnable                       bool
+	prometheusEnable                      bool
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -88,9 +89,13 @@ func main() {
 		metricsPath:                           envString("METRICS_PATH", "/metrics"),
 		healthPath:                            envString("HEALTH_PATH", "/health"),
 		dogstatsdEnable:                       envBool("DOGSTATSD_ENABLE", true),
+		prometheusEnable:                      envBool("PROMETHEUS_ENABLE", true),
 
 		awsConfig: mustAwsConfig(),
-		registry:  prometheus.NewRegistry(),
+	}
+
+	if app.prometheusEnable {
+		app.registry = prometheus.NewRegistry()
 	}
 
 	app.clientEcs = ecs.NewFromConfig(app.awsConfig)
@@ -107,31 +112,16 @@ func main() {
 	// start health check
 	//
 
+	infof("registering health check route: %s", app.healthPath)
 	http.HandleFunc(app.healthPath, handlerHealth)
 
 	//
 	// start metrics server
 	//
 
-	{
-		/*
-			log.Info().Msgf("registering metrics route: %s %s",
-				app.cfg.metricsAddr, app.cfg.metricsPath)
-
-			mux := http.NewServeMux()
-			app.serverMetrics = &http.Server{Addr: app.cfg.metricsAddr, Handler: mux}
-		*/
+	if app.prometheusEnable {
+		infof("registering prometheus metrics route: %s", app.metricsPath)
 		http.Handle(app.metricsPath, app.metricsHandler())
-		/*
-			mux.Handle(app.cfg.metricsPath, )
-
-			go func() {
-				log.Info().Msgf("metrics server: listening on %s %s",
-					app.cfg.metricsAddr, app.cfg.metricsPath)
-				err := app.serverMetrics.ListenAndServe()
-				log.Error().Msgf("metrics server: exited: %v", err)
-			}()
-		*/
 	}
 
 	//
