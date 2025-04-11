@@ -44,7 +44,10 @@ func startGroupcache(app *application) func() {
 	// start groupcache peer discovery
 	//
 
-	metricsNamespace := ""
+	const (
+		groupcacheMetricsNamespace          = "" // usually empty since "groupcache" is added as subsystem
+		groupcacheDiscoveryMetricsNamespace = "groupcachediscovery"
+	)
 
 	discOptions := groupcachediscovery.Options{
 		Pool:           pool,
@@ -53,13 +56,13 @@ func startGroupcache(app *application) func() {
 		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
-		MetricsNamespace:  metricsNamespace,
+		MetricsNamespace:  groupcacheDiscoveryMetricsNamespace,
 		MetricsRegisterer: app.registry,
 	}
 
 	if app.dogstatsdEnable {
 		client, errClient := dogstatsdclient.New(dogstatsdclient.Options{
-			Namespace: "kubegroup",
+			Namespace: groupcacheDiscoveryMetricsNamespace,
 			Debug:     true,
 		})
 		if errClient != nil {
@@ -115,7 +118,7 @@ func startGroupcache(app *application) func() {
 	//
 	g := modernprogram.New(app.cache)
 	labels := map[string]string{}
-	collector := groupcache_exporter.NewExporter(metricsNamespace, labels, g)
+	collector := groupcache_exporter.NewExporter(groupcacheMetricsNamespace, labels, g)
 	app.registry.MustRegister(collector)
 
 	return func() { disc.Stop() }

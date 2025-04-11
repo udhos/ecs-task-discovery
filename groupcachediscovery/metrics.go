@@ -58,13 +58,10 @@ func newMetrics(namespace string, registerer prometheus.Registerer,
 		return m
 	}
 
-	const subsystem = "groupcachediscovery"
-
 	m.peers = newGauge(
 		registerer,
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: subsystem,
 			Name:      "peers",
 			Help:      "Number of peers discovered.",
 		},
@@ -74,7 +71,6 @@ func newMetrics(namespace string, registerer prometheus.Registerer,
 		registerer,
 		prometheus.CounterOpts{
 			Namespace: namespace,
-			Subsystem: subsystem,
 			Name:      "events",
 			Help:      "Number of events received.",
 		},

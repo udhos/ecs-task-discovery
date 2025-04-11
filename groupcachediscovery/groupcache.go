@@ -67,10 +67,6 @@ type Options struct {
 	// Defaults to empty.
 	MetricsNamespace string
 
-	// MetricsSubsystem provides optional subsystem for prometheus metrics.
-	// Defaults to "groupcache".
-	MetricsSubsystem string
-
 	// DogstatsdClient optionally sends metrics to Datadog Dogstatsd.
 	DogstatsdClient *statsd.Client
 
@@ -101,10 +97,6 @@ func New(options Options) (*Discovery, error) {
 
 	if options.MetricsRegisterer == nil {
 		return nil, errors.New("option MetricsRegisterer is nil")
-	}
-
-	if options.MetricsSubsystem == "" {
-		options.MetricsSubsystem = "groupcache"
 	}
 
 	myAddr, errAddr := FindMyAddr()
