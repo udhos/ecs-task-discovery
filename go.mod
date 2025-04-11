@@ -11,6 +11,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/udhos/boilerplate v1.6.8
 	github.com/udhos/dogstatsdclient v0.0.2
+	github.com/udhos/groupcache_datadog v0.0.6
 	github.com/udhos/groupcache_exporter v1.1.2
 )
 

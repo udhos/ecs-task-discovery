@@ -81,6 +81,8 @@ github.com/udhos/boilerplate v1.6.8 h1:RQkeQESRBBEzJuQfqxMe7yLc6PwPPc8MLa7vja63p
 github.com/udhos/boilerplate v1.6.8/go.mod h1:avdJCCaANfoPUh7jC+vhumMZJghBg9FPr/JMyhmezCE=
 github.com/udhos/dogstatsdclient v0.0.2 h1:t1wVeB0IHURkS04WulyxG4I5yRZ8Za/VMhyT7gNJxaQ=
 github.com/udhos/dogstatsdclient v0.0.2/go.mod h1:SGlnVGLUAMdf+MeXX3XbGvTu9L/vbPL+An87SeXCgbs=
+github.com/udhos/groupcache_datadog v0.0.6 h1:pAm6i/k3Jc1993/6xEILAXn6x1G9M0SfvEGb5dsaOyU=
+github.com/udhos/groupcache_datadog v0.0.6/go.mod h1:wajO+SCiwbBUGpjDrOZd2G5pn+2mheudPto+oWlZ/Z4=
 github.com/udhos/groupcache_exporter v1.1.2 h1:1lDCJlUz4Tfk89/U4hdbxw/oqvgvRzDa3koBz1kZuw8=
 github.com/udhos/groupcache_exporter v1.1.2/go.mod h1:EIlUX181r82N458rPynEAj5VFHz8WQb/dbDEr1YxTg0=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=

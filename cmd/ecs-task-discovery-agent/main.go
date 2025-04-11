@@ -38,6 +38,7 @@ type application struct {
 	forceSingleTask                       bool
 	metricsPath                           string
 	healthPath                            string
+	dogstatsdExportInterval               time.Duration
 	dogstatsdEnable                       bool
 	prometheusEnable                      bool
 
@@ -88,6 +89,7 @@ func main() {
 		forceSingleTask:                       envBool("FORCE_SINGLE_TASK", false),
 		metricsPath:                           envString("METRICS_PATH", "/metrics"),
 		healthPath:                            envString("HEALTH_PATH", "/health"),
+		dogstatsdExportInterval:               envDuration("DOGSTATSD_EXPORT_INTERVAL", time.Minute),
 		dogstatsdEnable:                       envBool("DOGSTATSD_ENABLE", true),
 		prometheusEnable:                      envBool("PROMETHEUS_ENABLE", true),
 
@@ -106,7 +108,8 @@ func main() {
 	// start groupcache
 	//
 
-	startGroupcache(app)
+	stop := startGroupcache(app)
+	defer stop()
 
 	//
 	// start health check
