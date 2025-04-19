@@ -84,7 +84,7 @@ type Discovery struct {
 	disc *discovery.Discovery
 }
 
-// Stop stops discvoery to release resources.
+// Stop stops discovery to release resources.
 func (d *Discovery) Stop() {
 	d.disc.Stop()
 }
