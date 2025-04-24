@@ -6,10 +6,10 @@ import (
 	"net"
 	"os"
 
-	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/groupcache/groupcache-go/v3/transport/peer"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/udhos/dogstatsdclient/dogstatsdclient"
 	"github.com/udhos/ecs-task-discovery/discovery"
 )
 
@@ -67,7 +67,7 @@ type Options struct {
 	MetricsNamespace string
 
 	// DogstatsdClient optionally sends metrics to Datadog Dogstatsd.
-	DogstatsdClient *statsd.Client
+	DogstatsdClient dogstatsdclient.DogstatsdClient
 
 	DogstatsdExtraTags []string
 

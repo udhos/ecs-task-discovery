@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/udhos/dogstatsdclient/dogstatsdclient"
 )
 
 type metrics struct {
 	peers  prometheus.Gauge
 	events prometheus.Counter
 
-	dogstatsdClient *statsd.Client
+	dogstatsdClient dogstatsdclient.DogstatsdClient
 	sampleRate      float64
 	extraTags       []string
 }
@@ -46,7 +46,7 @@ func (m *metrics) update(peers int) {
 }
 
 func newMetrics(namespace string, registerer prometheus.Registerer,
-	client *statsd.Client, dogstatsdExtraTags []string) *metrics {
+	client dogstatsdclient.DogstatsdClient, dogstatsdExtraTags []string) *metrics {
 
 	m := &metrics{
 		dogstatsdClient: client,

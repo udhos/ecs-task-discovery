@@ -40,6 +40,8 @@ type application struct {
 	healthPath                            string
 	dogstatsdExportInterval               time.Duration
 	dogstatsdEnable                       bool
+	dogstatsdDebug                        bool
+	dogstatsdClientTTL                    time.Duration
 	prometheusEnable                      bool
 
 	awsConfig        aws.Config
@@ -91,6 +93,8 @@ func main() {
 		healthPath:                            envString("HEALTH_PATH", "/health"),
 		dogstatsdExportInterval:               envDuration("DOGSTATSD_EXPORT_INTERVAL", time.Minute),
 		dogstatsdEnable:                       envBool("DOGSTATSD_ENABLE", true),
+		dogstatsdDebug:                        envBool("DOGSTATSD_DEBUG", false),
+		dogstatsdClientTTL:                    envDuration("DOGSTATSD_CLIENT_TTL", time.Minute),
 		prometheusEnable:                      envBool("PROMETHEUS_ENABLE", true),
 
 		awsConfig: mustAwsConfig(),

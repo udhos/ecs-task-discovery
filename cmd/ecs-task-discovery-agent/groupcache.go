@@ -67,7 +67,8 @@ func startGroupcache(app *application) func() {
 	if app.dogstatsdEnable {
 		client, errClient := dogstatsdclient.New(dogstatsdclient.Options{
 			Namespace: groupcacheDiscoveryMetricsNamespace,
-			Debug:     true,
+			Debug:     app.dogstatsdDebug,
+			TTL:       app.dogstatsdClientTTL,
 		})
 		if errClient != nil {
 			fatalf("dogstatsd client: %v", errClient)

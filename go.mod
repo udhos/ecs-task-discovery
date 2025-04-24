@@ -3,19 +3,19 @@ module github.com/udhos/ecs-task-discovery
 go 1.24.2
 
 require (
-	github.com/DataDog/datadog-go/v5 v5.6.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.55.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.56.0
 	github.com/groupcache/groupcache-go/v3 v3.2.0
 	github.com/modernprogram/groupcache/v2 v2.7.2
 	github.com/prometheus/client_golang v1.22.0
 	github.com/udhos/boilerplate v1.6.8
-	github.com/udhos/dogstatsdclient v0.0.3
-	github.com/udhos/groupcache_datadog v0.0.8
+	github.com/udhos/dogstatsdclient v0.0.4
+	github.com/udhos/groupcache_datadog v0.0.9
 	github.com/udhos/groupcache_exporter v1.1.2
 )
 
 require (
+	github.com/DataDog/datadog-go/v5 v5.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.14 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67 // indirect
