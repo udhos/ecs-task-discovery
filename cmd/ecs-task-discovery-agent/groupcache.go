@@ -118,14 +118,20 @@ func startGroupcache(app *application) func() {
 	// 64 MB max per-node memory usage
 	app.cache = groupcache.NewGroupWithWorkspace(groupcacheOptions)
 
-	extract := modernprogram.New(app.cache) // extract metrics from groupcache group
-
 	unregister := func() {}
+
+	listGroups := func() []groupcache_exporter.GroupStatistics {
+		return modernprogram.ListGroups(workspace)
+	}
 
 	if app.prometheusEnable {
 		infof("starting groupcache metrics exporter for Prometheus")
 		labels := map[string]string{}
-		collector := groupcache_exporter.NewExporter(groupcacheMetricsNamespace, labels, extract)
+		collector := groupcache_exporter.NewExporter(groupcache_exporter.Options{
+			Namespace:  groupcacheMetricsNamespace,
+			Labels:     labels,
+			ListGroups: listGroups,
+		})
 		app.registry.MustRegister(collector)
 		unregister = func() { app.registry.Unregister(collector) }
 	}
@@ -136,7 +142,7 @@ func startGroupcache(app *application) func() {
 		infof("starting groupcache metrics exporter for Dogstatsd")
 		exporter := exporter.New(exporter.Options{
 			Client:         discOptions.DogstatsdClient,
-			Groups:         []groupcache_exporter.GroupStatistics{extract},
+			ListGroups:     listGroups,
 			ExportInterval: app.dogstatsdExportInterval,
 		})
 		closeExporterDogstatsd = func() { exporter.Close() }

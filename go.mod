@@ -4,14 +4,14 @@ go 1.24.2
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.56.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.56.2
 	github.com/groupcache/groupcache-go/v3 v3.2.0
-	github.com/modernprogram/groupcache/v2 v2.7.2
+	github.com/modernprogram/groupcache/v2 v2.7.6
 	github.com/prometheus/client_golang v1.22.0
 	github.com/udhos/boilerplate v1.6.8
 	github.com/udhos/dogstatsdclient v0.0.4
-	github.com/udhos/groupcache_datadog v0.0.9
-	github.com/udhos/groupcache_exporter v1.1.2
+	github.com/udhos/groupcache_datadog v0.1.0
+	github.com/udhos/groupcache_exporter v1.3.1
 )
 
 require (
