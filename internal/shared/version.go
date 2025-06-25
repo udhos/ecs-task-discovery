@@ -2,4 +2,4 @@
 package shared
 
 // Version informs agent version.
-const Version = "1.0.6"
+const Version = "1.1.0"
