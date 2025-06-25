@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/groupcache/groupcache-go/v3/transport/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -73,6 +74,15 @@ type Options struct {
 
 	// MetricsRegisterer optionally sends metrics to Prometheus.
 	MetricsRegisterer prometheus.Registerer
+
+	// EmfEnable optionally enables AWS CloudWatch EMF metrics.
+	EmfEnable bool
+
+	// EmfSend optionally sends AWS CloudWatch EMF metrics directly to CloudWatch logs.
+	EmfSend bool
+
+	// AwsConfig is required if you enable EmfSend.
+	AwsConfig *aws.Config
 }
 
 func buildURL(addr, groupcachePort string) string {
@@ -99,9 +109,13 @@ func New(options Options) (*Discovery, error) {
 		return nil, errAddr
 	}
 
-	m := newMetrics(options.MetricsNamespace,
+	m, errMetrics := newMetrics(options.MetricsNamespace,
 		options.MetricsRegisterer, options.DogstatsdClient,
-		options.DogstatsdExtraTags)
+		options.DogstatsdExtraTags, options.EmfEnable,
+		options.EmfSend, options.ServiceName, *options.AwsConfig)
+	if errMetrics != nil {
+		return nil, errMetrics
+	}
 
 	callback := func(tasks []discovery.Task) {
 

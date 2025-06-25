@@ -8,7 +8,9 @@ require (
 	github.com/groupcache/groupcache-go/v3 v3.2.0
 	github.com/modernprogram/groupcache/v2 v2.7.7
 	github.com/prometheus/client_golang v1.22.0
+	github.com/udhos/aws-emf v0.0.5
 	github.com/udhos/boilerplate v1.6.10
+	github.com/udhos/cloudwatchlog v0.0.3
 	github.com/udhos/dogstatsdclient v0.1.0
 	github.com/udhos/groupcache_awsemf v0.0.5
 	github.com/udhos/groupcache_datadog v1.0.2
@@ -41,8 +43,6 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
-	github.com/udhos/aws-emf v0.0.5 // indirect
-	github.com/udhos/cloudwatchlog v0.0.3 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
