@@ -43,6 +43,8 @@ type application struct {
 	dogstatsdDebug                        bool
 	dogstatsdClientTTL                    time.Duration
 	prometheusEnable                      bool
+	emfEnable                             bool
+	emfSendLogs                           bool
 
 	awsConfig        aws.Config
 	clientEcs        *ecs.Client
@@ -96,6 +98,8 @@ func main() {
 		dogstatsdDebug:                        envBool("DOGSTATSD_DEBUG", false),
 		dogstatsdClientTTL:                    envDuration("DOGSTATSD_CLIENT_TTL", time.Minute),
 		prometheusEnable:                      envBool("PROMETHEUS_ENABLE", true),
+		emfEnable:                             envBool("EMF_ENABLE", false),
+		emfSendLogs:                           envBool("EMF_SEND_LOGS", false),
 
 		awsConfig: mustAwsConfig(),
 	}

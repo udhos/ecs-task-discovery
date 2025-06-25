@@ -8,6 +8,7 @@ import (
 	"github.com/modernprogram/groupcache/v2"
 	"github.com/udhos/dogstatsdclient/dogstatsdclient"
 	"github.com/udhos/ecs-task-discovery/groupcachediscovery"
+	emfexporter "github.com/udhos/groupcache_awsemf/exporter"
 	"github.com/udhos/groupcache_datadog/exporter"
 	"github.com/udhos/groupcache_exporter"
 	"github.com/udhos/groupcache_exporter/groupcache/modernprogram"
@@ -148,9 +149,38 @@ func startGroupcache(app *application) func() {
 		closeExporterDogstatsd = func() { exporter.Close() }
 	}
 
+	closeEmf := func() {}
+
+	if app.emfEnable {
+		infof("starting groupcache metrics exporter for AWS CloudWatch EMF")
+
+		opt := emfexporter.Options{
+			Application:    "ecs-task-discovery-agent",
+			ListGroups:     listGroups,
+			ExportInterval: 20 * time.Second,
+		}
+
+		if app.emfSendLogs {
+			//
+			// send EMF directly to aws cloudwatch logs
+			//
+			infof("starting groupcache metrics exporter for AWS CloudWatch EMF - send directly to cloudwatch logs")
+			awsConfig := &app.awsConfig
+			opt.AwsConfig = awsConfig
+		}
+
+		exporter, errExport := emfexporter.New(opt)
+		if errExport != nil {
+			fatalf("emf exporter error: %v", errExport)
+		}
+
+		closeEmf = func() { exporter.Close() }
+	}
+
 	return func() {
 		disc.Stop()
 		closeExporterDogstatsd()
 		unregister()
+		closeEmf()
 	}
 }
