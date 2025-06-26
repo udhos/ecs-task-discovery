@@ -59,6 +59,9 @@ func startGroupcache(app *application) func() {
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
 		MetricsNamespace:  groupcacheDiscoveryMetricsNamespace,
+		EmfEnable:         app.emfEnable,
+		EmfSend:           app.emfSendLogs,
+		AwsConfig:         &app.awsConfig,
 	}
 
 	if app.prometheusEnable {

@@ -34,6 +34,11 @@ type metrics struct {
 	dimensions    map[string]string
 }
 
+var (
+	metricEvents = emf.MetricDefinition{Name: "events", Unit: "Count"}
+	metricPeers  = emf.MetricDefinition{Name: "peers", Unit: "Count"}
+)
+
 func (m *metrics) update(peers int) {
 
 	peersFloat64 := float64(peers)
@@ -67,9 +72,6 @@ func (m *metrics) update(peers int) {
 
 		namespace := "groupcachediscovery"
 
-		metricEvents := emf.MetricDefinition{Name: "events", Unit: "Count"}
-		metricPeers := emf.MetricDefinition{Name: "peers", Unit: "Count"}
-
 		m.metricContext.Record(namespace, metricEvents, m.dimensions, 1)
 		m.metricContext.Record(namespace, metricPeers, m.dimensions, int(peers))
 
@@ -89,12 +91,14 @@ func (m *metrics) update(peers int) {
 func newMetrics(namespace string, registerer prometheus.Registerer,
 	client dogstatsdclient.DogstatsdClient, dogstatsdExtraTags []string,
 	emfEnable, emfSend bool, emfApplication string,
-	awsConfig aws.Config) (*metrics, error) {
+	emfDimensions map[string]string,
+	awsConfig *aws.Config) (*metrics, error) {
 
 	m := &metrics{
 		dogstatsdClient: client,
 		extraTags:       dogstatsdExtraTags,
 		sampleRate:      1,
+		dimensions:      emfDimensions,
 	}
 
 	if registerer != nil {
@@ -119,8 +123,11 @@ func newMetrics(namespace string, registerer prometheus.Registerer,
 	if emfEnable {
 		m.metricContext = emf.New(emf.Options{})
 		if emfSend {
+			if awsConfig == nil {
+				return nil, fmt.Errorf("EmfSend: need non-nil AwsConfig to send EMF directly to CloudWatch logs")
+			}
 			cw, errCwlog := cwlog.New(cwlog.Options{
-				AwsConfig: awsConfig,
+				AwsConfig: *awsConfig,
 				LogGroup:  "/groupcachediscovery/" + emfApplication,
 			})
 			if errCwlog != nil {

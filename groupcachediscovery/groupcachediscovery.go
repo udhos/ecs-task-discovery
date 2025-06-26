@@ -70,6 +70,7 @@ type Options struct {
 	// DogstatsdClient optionally sends metrics to Datadog Dogstatsd.
 	DogstatsdClient dogstatsdclient.DogstatsdClient
 
+	// DogstatsdExtraTags optionally adds extra tags to Dogstatsd metrics.
 	DogstatsdExtraTags []string
 
 	// MetricsRegisterer optionally sends metrics to Prometheus.
@@ -79,7 +80,11 @@ type Options struct {
 	EmfEnable bool
 
 	// EmfSend optionally sends AWS CloudWatch EMF metrics directly to CloudWatch logs.
+	// AwsConfig is required if you enable EmfSend.
 	EmfSend bool
+
+	// EmfDimensions optionally adds dimensions to AWS CloudWatch EMF metrics.
+	EmfDimensions map[string]string
 
 	// AwsConfig is required if you enable EmfSend.
 	AwsConfig *aws.Config
@@ -112,7 +117,8 @@ func New(options Options) (*Discovery, error) {
 	m, errMetrics := newMetrics(options.MetricsNamespace,
 		options.MetricsRegisterer, options.DogstatsdClient,
 		options.DogstatsdExtraTags, options.EmfEnable,
-		options.EmfSend, options.ServiceName, *options.AwsConfig)
+		options.EmfSend, options.ServiceName,
+		options.EmfDimensions, options.AwsConfig)
 	if errMetrics != nil {
 		return nil, errMetrics
 	}
