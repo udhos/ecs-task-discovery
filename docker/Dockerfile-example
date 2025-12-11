@@ -1,6 +1,6 @@
 # STEP 1 build executable binary
 
-FROM golang:1.24.4-alpine3.22 AS builder
+FROM golang:1.25.5-alpine3.23 AS builder
 
 RUN apk update
 RUN apk add git
@@ -23,7 +23,7 @@ RUN go build -o /tmp/ecs-task-discovery-example ./cmd/ecs-task-discovery-example
 #
 # curl: https://security.alpinelinux.org/srcpkg/curl
 #
-FROM alpine:3.22.0
+FROM alpine:3.23.0
 COPY --from=builder /tmp/ecs-task-discovery-example /bin/ecs-task-discovery-example
 #RUN apk add curl=8.1.2-r0 libcrypto3=3.1.0-r4 libssl3=3.1.0-r4
 RUN apk update && \
