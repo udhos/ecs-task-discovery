@@ -217,7 +217,7 @@ func (d *Discovery) listTasks() []Task {
 		if err == nil {
 			infof("%s: query agent: cluster=%s service=%s tasks=%d",
 				d.clusterName, d.options.ServiceName, me, len(tasks))
-			return tasks
+			return d.filterByHealth(tasks)
 		}
 		errorf("%s: query agent error: cluster=%s service=%s tasks=%d: %v",
 			d.clusterName, d.options.ServiceName, me, len(tasks), err)
@@ -228,7 +228,7 @@ func (d *Discovery) listTasks() []Task {
 			{
 				ARN:          "mockedSingleTaskARN",
 				Address:      d.options.ForceSingleTask,
-				HealthStatus: "UNKNOWN",
+				HealthStatus: "HEALTHY",
 				LastStatus:   "RUNNING",
 			},
 		}
@@ -241,7 +241,21 @@ func (d *Discovery) listTasks() []Task {
 		}
 	}
 
-	return tasks
+	return d.filterByHealth(tasks)
+}
+
+// filterByHealth filters tasks to only include HEALTHY tasks when health check detection is enabled.
+func (d *Discovery) filterByHealth(tasks []Task) []Task {
+	if !d.healthCheckEnabled {
+		return tasks
+	}
+	var filtered []Task
+	for _, t := range tasks {
+		if t.HealthStatus == string(types.HealthStatusHealthy) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
 }
 
 func (d *Discovery) queryAgent() ([]Task, error) {
