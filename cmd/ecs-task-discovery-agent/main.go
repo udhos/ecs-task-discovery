@@ -36,6 +36,7 @@ type application struct {
 	cacheTTL                              time.Duration
 	ecsTaskDiscoveryAgentService          string
 	forceSingleTask                       bool
+	taskDefinitionHealthCheckMode         discovery.HealthCheckMode
 	metricsPath                           string
 	healthPath                            string
 	dogstatsdExportInterval               time.Duration
@@ -91,6 +92,7 @@ func main() {
 		cacheTTL:                              envDuration("CACHE_TTL", 20*time.Second),
 		ecsTaskDiscoveryAgentService:          envString("ECS_TASK_DISCOVERY_AGENT_SERVICE", "ecs-task-discovery-agent"),
 		forceSingleTask:                       envBool("FORCE_SINGLE_TASK", false),
+		taskDefinitionHealthCheckMode:         envHealthCheckMode("TASK_DEFINITION_HEALTH_CHECK_MODE", discovery.HealthCheckModeDetect),
 		metricsPath:                           envString("METRICS_PATH", "/metrics"),
 		healthPath:                            envString("HEALTH_PATH", "/health"),
 		dogstatsdExportInterval:               envDuration("DOGSTATSD_EXPORT_INTERVAL", time.Minute),

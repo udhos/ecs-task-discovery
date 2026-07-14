@@ -31,7 +31,7 @@ See example: [./cmd/ecs-task-discovery-example/main.go](./cmd/ecs-task-discovery
 ```bash
 export SERVICE=ecs-task-discovery-example
 
-ecs-task-discovery-example
+ecs-task-discovery-example -task-definition-health-check-mode=false
 ```
 
 # Testing agent
@@ -44,14 +44,26 @@ python3 -m http.server 8000
 # run agent pointing to mocked metadata
 export FORCE_SINGLE_TASK=true
 export ECS_CONTAINER_METADATA_URI_V4=http://localhost:8000
+export TASK_DEFINITION_HEALTH_CHECK_MODE=false ;# do not query ECS API
 ecs-task-discovery-agent
 
 curl localhost:8080/tasks/ecs-task-discovery-example
 
 export ECS_TASK_DISCOVERY_AGENT_URL=http://localhost:8080/tasks
 export ECS_CONTAINER_METADATA_URI_V4=http://localhost:8000
-ecs-task-discovery-example
+ecs-task-discovery-example -task-definition-health-check-mode=false
 ```
+
+# Agent health check mode
+
+The agent accepts env var `TASK_DEFINITION_HEALTH_CHECK_MODE` to control how task definition health check detection is handled.
+
+Allowed values:
+
+- `detect` (default): detect using ECS API; errors fail startup.
+- `detectandhandleerrorasfalse`: detect using ECS API; errors fallback to false.
+- `true`: force health checks enabled.
+- `false`: force health checks disabled.
 
 # References
 

@@ -52,10 +52,11 @@ func startGroupcache(app *application) func() {
 	)
 
 	discOptions := groupcachediscovery.Options{
-		Pool:           pool,
-		Client:         app.clientEcs,
-		GroupCachePort: app.groupcachePort,
-		ServiceName:    app.ecsTaskDiscoveryAgentService, // self
+		Pool:                         pool,
+		Client:                       app.clientEcs,
+		GroupCachePort:               app.groupcachePort,
+		ServiceName:                  app.ecsTaskDiscoveryAgentService, // self
+		TaskDefinitionHasHealthCheck: app.taskDefinitionHealthCheckMode,
 		// ForceSingleTask: see below
 		DisableAgentQuery: true, // do not query ourselves
 		MetricsNamespace:  groupcacheDiscoveryMetricsNamespace,

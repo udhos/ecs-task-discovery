@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,8 +24,10 @@ func main() {
 	//
 	var showVersion bool
 	var repeat int
+	var taskDefinitionHealthCheckMode string
 	flag.BoolVar(&showVersion, "version", showVersion, "show version")
 	flag.IntVar(&repeat, "repeat", repeat, "repeat count")
+	flag.StringVar(&taskDefinitionHealthCheckMode, "task-definition-health-check-mode", "", "task definition health check mode: detect|detectandhandleerrorasfalse|true|false")
 	flag.Parse()
 
 	me := filepath.Base(os.Args[0])
@@ -47,7 +50,28 @@ func main() {
 		service = "ecs-task-discovery-example"
 	}
 
+	mode := taskDefinitionHealthCheckMode
+	if mode == "" {
+		mode = os.Getenv("TASK_DEFINITION_HEALTH_CHECK_MODE")
+	}
+	if mode == "" {
+		mode = string(discovery.HealthCheckModeDetect)
+	}
+	mode = strings.ToLower(mode)
+
+	healthCheckMode := discovery.HealthCheckMode(mode)
+	switch healthCheckMode {
+	case discovery.HealthCheckModeDetect,
+		discovery.HealthCheckModeDetectAndHandleErrorAsFalse,
+		discovery.HealthCheckModeTrue,
+		discovery.HealthCheckModeFalse:
+		// valid
+	default:
+		fatalf("invalid task definition health check mode: %s", mode)
+	}
+
 	slog.Info(fmt.Sprintf("SERVICE=%s", service))
+	slog.Info(fmt.Sprintf("TASK_DEFINITION_HEALTH_CHECK_MODE=%s", healthCheckMode))
 
 	awsConfig := mustAwsConfig()
 
@@ -55,10 +79,11 @@ func main() {
 
 	for ; ; repeat-- {
 		disc, err := discovery.New(discovery.Options{
-			ServiceName: service,
-			Callback:    callback,
-			Interval:    10 * time.Second,
-			Client:      ecs.NewFromConfig(awsConfig),
+			ServiceName:                  service,
+			Callback:                     callback,
+			Interval:                     10 * time.Second,
+			Client:                       ecs.NewFromConfig(awsConfig),
+			TaskDefinitionHasHealthCheck: healthCheckMode,
 		})
 		if err != nil {
 			fatalf("discovery.New: error: %v", err)

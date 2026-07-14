@@ -3,7 +3,10 @@ package main
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/udhos/ecs-task-discovery/discovery"
 )
 
 // envString extracts string from env var.
@@ -68,4 +71,32 @@ func envInt64(name string, defaultValue int64) int64 {
 	}
 	infof("%s=[%s] using %s=%v default=%v", name, str, name, defaultValue, defaultValue)
 	return defaultValue
+}
+
+// envHealthCheckMode extracts task definition health check mode from env var.
+// It returns the provided defaultValue if the env var is empty or invalid.
+// The value returned is also recorded in logs.
+func envHealthCheckMode(name string, defaultValue discovery.HealthCheckMode) discovery.HealthCheckMode {
+	str := envString(name, string(defaultValue))
+	mode := discovery.HealthCheckMode(strings.ToLower(str))
+
+	switch mode {
+	case discovery.HealthCheckModeDetect,
+		discovery.HealthCheckModeDetectAndHandleErrorAsFalse,
+		discovery.HealthCheckModeTrue,
+		discovery.HealthCheckModeFalse:
+		infof("%s=[%s] using %s=%s default=%s", name, str, name, mode, defaultValue)
+		return mode
+	default:
+		errorf("bad %s=[%s]: allowed values: %s|%s|%s|%s",
+			name,
+			str,
+			discovery.HealthCheckModeDetect,
+			discovery.HealthCheckModeDetectAndHandleErrorAsFalse,
+			discovery.HealthCheckModeTrue,
+			discovery.HealthCheckModeFalse,
+		)
+		infof("%s=[%s] using %s=%s default=%s", name, str, name, defaultValue, defaultValue)
+		return defaultValue
+	}
 }
