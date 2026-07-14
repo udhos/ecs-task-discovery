@@ -71,6 +71,11 @@ See `start groupcache peer discovery` below.
 ## Step 2: Task role policy
 
 The task role policy for your application on ECS should include permissions `ecs:ListTasks` and `ecs:DescribeTasks`.
+
+If using health check detection (i.e. `TaskDefinitionHasHealthCheck` is set to `Detect` or `DetectAndHandleErrorAsFalse`),
+the additional permissions `ecs:DescribeServices` and `ecs:DescribeTaskDefinition` are also required.
+These permissions are NOT required if using the static/forced modes (`True` or `False`).
+
 See example below.
 
 ```json
@@ -94,6 +99,15 @@ See example below.
 	        Action = [
 	          "ecs:ListTasks",
 	          "ecs:DescribeTasks"
+	        ]
+	        Effect   = "Allow"
+	        Resource = "*"
+	      },
+	      {
+	        Sid = "ecsTaskHealthCheckDetect",
+	        Action = [
+	          "ecs:DescribeServices",
+	          "ecs:DescribeTaskDefinition"
 	        ]
 	        Effect   = "Allow"
 	        Resource = "*"
@@ -155,6 +169,8 @@ follows:
     created in the ECS service for the agent.
 
   - The task role policy for the agent on ECS should include permissions `ecs:ListTasks` and `ecs:DescribeTasks`.
+    If using health check detection (`TaskDefinitionHasHealthCheck` set to `Detect` or `DetectAndHandleErrorAsFalse`),
+    also include `ecs:DescribeServices` and `ecs:DescribeTaskDefinition`. These are not required for static modes (`True` or `False`).
 
   - Agent docker image: docker.io/udhos/ecs-task-discovery-agent:latest
 */

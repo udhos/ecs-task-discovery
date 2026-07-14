@@ -88,6 +88,10 @@ type Options struct {
 
 	// AwsConfig is required if you enable EmfSend.
 	AwsConfig *aws.Config
+
+	// TaskDefinitionHasHealthCheck determines how to check if task definition has health checks.
+	// Values: "Detect" (default), "DetectAndHandleErrorAsFalse", "True", "False".
+	TaskDefinitionHasHealthCheck discovery.HealthCheckMode
 }
 
 func buildURL(addr, groupcachePort string) string {
@@ -177,11 +181,12 @@ func New(options Options) (*Discovery, error) {
 	}
 
 	disc, err := discovery.New(discovery.Options{
-		ServiceName:       options.ServiceName,
-		Client:            options.Client,
-		Callback:          callback,
-		ForceSingleTask:   options.ForceSingleTask,
-		DisableAgentQuery: options.DisableAgentQuery,
+		ServiceName:                  options.ServiceName,
+		Client:                       options.Client,
+		Callback:                     callback,
+		ForceSingleTask:              options.ForceSingleTask,
+		DisableAgentQuery:            options.DisableAgentQuery,
+		TaskDefinitionHasHealthCheck: options.TaskDefinitionHasHealthCheck,
 	})
 
 	if err != nil {

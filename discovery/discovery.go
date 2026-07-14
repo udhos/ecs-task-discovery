@@ -22,10 +22,28 @@ import (
 
 // Discovery is used for performing task discovery.
 type Discovery struct {
-	options     Options
-	clusterName string
-	done        chan struct{}
+	options            Options
+	clusterName        string
+	done               chan struct{}
+	healthCheckEnabled bool
 }
+
+// HealthCheckMode defines the mode for checking if health checks are enabled.
+type HealthCheckMode string
+
+const (
+	// HealthCheckModeDetect detects health checks at startup via ECS API and fails startup on error (default).
+	HealthCheckModeDetect HealthCheckMode = "detect"
+
+	// HealthCheckModeDetectAndHandleErrorAsFalse detects health checks and falls back to false on error.
+	HealthCheckModeDetectAndHandleErrorAsFalse HealthCheckMode = "detectandhandleerrorasfalse"
+
+	// HealthCheckModeTrue forces health check enablement to true.
+	HealthCheckModeTrue HealthCheckMode = "true"
+
+	// HealthCheckModeFalse forces health check enablement to false.
+	HealthCheckModeFalse HealthCheckMode = "false"
+)
 
 // Options define settings for creating a Discovery.
 type Options struct {
@@ -56,6 +74,10 @@ type Options struct {
 	// If undefined, retrieves value from env var ECS_TASK_DISCOVERY_AGENT_URL.
 	// If ECS_TASK_DISCOVERY_AGENT_URL is undefined, defaults to http://ecs-task-discovery-agent.{Cluster}:8080/tasks.
 	AgentURL string
+
+	// TaskDefinitionHasHealthCheck determines how to check if task definition has health checks.
+	// Values: "Detect" (default), "DetectAndHandleErrorAsFalse", "True", "False".
+	TaskDefinitionHasHealthCheck HealthCheckMode
 }
 
 const (
@@ -95,6 +117,45 @@ func New(options Options) (*Discovery, error) {
 		clusterName: MustClusterName(),
 		done:        make(chan struct{}),
 	}
+
+	var healthCheckEnabled bool
+	var resolution string
+
+	mode := HealthCheckMode(strings.ToLower(string(options.TaskDefinitionHasHealthCheck)))
+	switch mode {
+	case HealthCheckModeTrue:
+		healthCheckEnabled = true
+		resolution = "forced/true"
+	case HealthCheckModeFalse:
+		healthCheckEnabled = false
+		resolution = "forced/false"
+	case HealthCheckModeDetect, HealthCheckModeDetectAndHandleErrorAsFalse, "":
+		var errHealth error
+		healthCheckEnabled, errHealth = IsHealthCheckEnabled(context.TODO(), options.Client, d.clusterName, options.ServiceName)
+		if errHealth != nil {
+			if mode == HealthCheckModeDetectAndHandleErrorAsFalse {
+				errorf("New: cluster=%s service=%s: detect task definition health check failed, falling back: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
+				healthCheckEnabled = false
+				resolution = "errored/false"
+			} else {
+				errorf("New: cluster=%s service=%s: detect task definition health check: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
+				return nil, fmt.Errorf("detect task definition health check: %w", errHealth)
+			}
+		} else {
+			if healthCheckEnabled {
+				resolution = "detected/true"
+			} else {
+				resolution = "detected/false"
+			}
+		}
+	default:
+		return nil, fmt.Errorf("invalid TaskDefinitionHasHealthCheck mode: %s", options.TaskDefinitionHasHealthCheck)
+	}
+
+	infof("New: cluster=%s service=%s: task definition health check option=%s resolved to %s",
+		d.clusterName, options.ServiceName, options.TaskDefinitionHasHealthCheck, resolution)
+
+	d.healthCheckEnabled = healthCheckEnabled
 
 	go d.run()
 
