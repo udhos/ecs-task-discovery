@@ -132,21 +132,18 @@ func New(options Options) (*Discovery, error) {
 	case HealthCheckModeDetect, HealthCheckModeDetectAndHandleErrorAsFalse, "":
 		var errHealth error
 		healthCheckEnabled, errHealth = IsHealthCheckEnabled(context.TODO(), options.Client, d.clusterName, options.ServiceName)
+		if errHealth != nil && mode != HealthCheckModeDetectAndHandleErrorAsFalse {
+			errorf("New: cluster=%s service=%s: detect task definition health check: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
+			return nil, fmt.Errorf("detect task definition health check: %w", errHealth)
+		}
 		if errHealth != nil {
-			if mode == HealthCheckModeDetectAndHandleErrorAsFalse {
-				errorf("New: cluster=%s service=%s: detect task definition health check failed, falling back: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
-				healthCheckEnabled = false
-				resolution = "errored/false"
-			} else {
-				errorf("New: cluster=%s service=%s: detect task definition health check: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
-				return nil, fmt.Errorf("detect task definition health check: %w", errHealth)
-			}
+			errorf("New: cluster=%s service=%s: detect task definition health check failed, falling back: errored/false: %v", d.clusterName, options.ServiceName, errHealth)
+			healthCheckEnabled = false
+			resolution = "errored/false"
+		} else if healthCheckEnabled {
+			resolution = "detected/true"
 		} else {
-			if healthCheckEnabled {
-				resolution = "detected/true"
-			} else {
-				resolution = "detected/false"
-			}
+			resolution = "detected/false"
 		}
 	default:
 		return nil, fmt.Errorf("invalid TaskDefinitionHasHealthCheck mode: %s", options.TaskDefinitionHasHealthCheck)
