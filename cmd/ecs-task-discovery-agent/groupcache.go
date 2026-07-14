@@ -16,7 +16,7 @@ import (
 
 func startGroupcache(app *application) func() {
 
-	workspace := groupcache.NewWorkspace()
+	workspace := groupcache.NewWorkspace(0)
 
 	//
 	// create groupcache pool
@@ -28,7 +28,7 @@ func startGroupcache(app *application) func() {
 	}
 	infof("groupcache my URL: %s", myURL)
 
-	pool := groupcache.NewHTTPPoolOptsWithWorkspace(workspace, myURL, &groupcache.HTTPPoolOptions{})
+	pool := groupcache.NewHTTPPoolOpts(workspace, myURL, &groupcache.HTTPPoolOptions{})
 
 	//
 	// start groupcache server
@@ -120,7 +120,7 @@ func startGroupcache(app *application) func() {
 	// https://talks.golang.org/2013/oscon-dl.slide#46
 	//
 	// 64 MB max per-node memory usage
-	app.cache = groupcache.NewGroupWithWorkspace(groupcacheOptions)
+	app.cache = groupcache.NewGroup(groupcacheOptions)
 
 	unregister := func() {}
 
