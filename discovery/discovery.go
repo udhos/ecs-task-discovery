@@ -26,6 +26,7 @@ type Discovery struct {
 	clusterName        string
 	done               chan struct{}
 	healthCheckEnabled bool
+	httpClient         *http.Client
 }
 
 // HealthCheckMode defines the mode for checking if health checks are enabled.
@@ -112,9 +113,12 @@ func New(options Options) (*Discovery, error) {
 		return nil, errors.New("option Client is required")
 	}
 
+	httpClient := NewHTTPClient()
+
 	d := &Discovery{
 		options:     options,
-		clusterName: MustClusterName(),
+		httpClient:  httpClient,
+		clusterName: MustClusterName(httpClient),
 		done:        make(chan struct{}),
 	}
 
@@ -279,7 +283,7 @@ func (d *Discovery) queryAgent() ([]Task, error) {
 		return nil, errJoin
 	}
 
-	resp, errGet := http.Get(u)
+	resp, errGet := d.httpClient.Get(u)
 	if errGet != nil {
 		return nil, errGet
 	}
@@ -414,8 +418,8 @@ func findAddress(attachments []types.Attachment) string {
 }
 
 // MustClusterName returns ECS cluster name.
-func MustClusterName() string {
-	clusterArn, err := FindCluster()
+func MustClusterName(httpClient *http.Client) string {
+	clusterArn, err := FindCluster(httpClient)
 	if err != nil {
 		fatalf("find cluster error: %v", err)
 	}
@@ -432,13 +436,13 @@ const envVarMetadataURI = "ECS_CONTAINER_METADATA_URI_V4"
 // Fargate: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-fargate-response.html
 // Env var: ${ECS_CONTAINER_METADATA_URI_V4}/task
 // Field: Cluster
-func FindCluster() (string, error) {
+func FindCluster(httpClient *http.Client) (string, error) {
 	envValue := os.Getenv(envVarMetadataURI)
 	if envValue == "" {
 		return "", fmt.Errorf("env var '%s' is empty", envVarMetadataURI)
 	}
 	uri := envValue + "/task"
-	resp, errGet := http.Get(uri)
+	resp, errGet := httpClient.Get(uri)
 	if errGet != nil {
 		return "", errGet
 	}

@@ -52,6 +52,7 @@ type application struct {
 	groupcacheServer *http.Server
 	cache            *groupcache.Group
 	registry         *prometheus.Registry
+	httpClient       *http.Client
 }
 
 func main() {
@@ -81,8 +82,10 @@ func main() {
 	// create application
 	//
 
+	httpClient := discovery.NewHTTPClient()
+
 	app := &application{
-		clusterName:                           discovery.MustClusterName(),
+		clusterName:                           discovery.MustClusterName(httpClient),
 		listenAddr:                            envString("LISTEN_ADDR", ":8080"),
 		groupcachePort:                        envString("GROUPCACHE_PORT", ":5000"),
 		groupcachePurgeExpired:                envBool("GROUPCACHE_PURGE_EXPIRED", true),
@@ -103,7 +106,8 @@ func main() {
 		emfEnable:                             envBool("EMF_ENABLE", false),
 		emfSendLogs:                           envBool("EMF_SEND_LOGS", false),
 
-		awsConfig: mustAwsConfig(),
+		awsConfig:  mustAwsConfig(),
+		httpClient: httpClient,
 	}
 
 	if app.prometheusEnable {

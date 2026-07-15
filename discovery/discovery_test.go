@@ -19,7 +19,7 @@ func TestFindCluster(t *testing.T) {
 
 	t.Setenv(envVarMetadataURI, ts.URL)
 
-	clusterArn, err := FindCluster()
+	clusterArn, err := FindCluster(NewHTTPClient())
 	if err != nil {
 		t.Error(err)
 	}
