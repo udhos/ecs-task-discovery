@@ -113,12 +113,10 @@ func New(options Options) (*Discovery, error) {
 		return nil, errors.New("option Client is required")
 	}
 
-	httpClient := NewHTTPClient()
-
 	d := &Discovery{
 		options:     options,
-		httpClient:  httpClient,
-		clusterName: MustClusterName(httpClient),
+		httpClient:  newHTTPClient(),
+		clusterName: MustClusterName(),
 		done:        make(chan struct{}),
 	}
 
@@ -418,8 +416,8 @@ func findAddress(attachments []types.Attachment) string {
 }
 
 // MustClusterName returns ECS cluster name.
-func MustClusterName(httpClient *http.Client) string {
-	clusterArn, err := FindCluster(httpClient)
+func MustClusterName() string {
+	clusterArn, err := FindCluster()
 	if err != nil {
 		fatalf("find cluster error: %v", err)
 	}
@@ -436,11 +434,12 @@ const envVarMetadataURI = "ECS_CONTAINER_METADATA_URI_V4"
 // Fargate: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-fargate-response.html
 // Env var: ${ECS_CONTAINER_METADATA_URI_V4}/task
 // Field: Cluster
-func FindCluster(httpClient *http.Client) (string, error) {
+func FindCluster() (string, error) {
 	envValue := os.Getenv(envVarMetadataURI)
 	if envValue == "" {
 		return "", fmt.Errorf("env var '%s' is empty", envVarMetadataURI)
 	}
+	httpClient := newHTTPClient()
 	uri := envValue + "/task"
 	resp, errGet := httpClient.Get(uri)
 	if errGet != nil {

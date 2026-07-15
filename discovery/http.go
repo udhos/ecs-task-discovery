@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// NewHTTPClient returns a new http.Client with custom settings for timeouts and connection pooling.
-func NewHTTPClient() *http.Client {
+// newHTTPClient returns a new http.Client with custom settings for timeouts and connection pooling.
+func newHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: newTransport(),
 		Timeout:   15 * time.Second,
