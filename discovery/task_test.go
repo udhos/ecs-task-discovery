@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -254,7 +255,7 @@ func TestIsHealthCheckEnabled(t *testing.T) {
 				}
 				// check error string contains substring
 				importString := err.Error()
-				if !containsString(importString, tt.expectedErrSubstring) {
+				if !strings.Contains(importString, tt.expectedErrSubstring) {
 					t.Errorf("expected error containing %q, got %q", tt.expectedErrSubstring, importString)
 				}
 			} else {
@@ -267,18 +268,4 @@ func TestIsHealthCheckEnabled(t *testing.T) {
 			}
 		})
 	}
-}
-
-func containsString(s, substr string) bool {
-	// Simple manual check to avoid importing strings package
-	lenSub := len(substr)
-	if lenSub == 0 {
-		return true
-	}
-	for i := 0; i+lenSub <= len(s); i++ {
-		if s[i:i+lenSub] == substr {
-			return true
-		}
-	}
-	return false
 }
