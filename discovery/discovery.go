@@ -172,12 +172,15 @@ func (d *Discovery) run() {
 
 	var savedTasks []Task
 
+	timer := time.NewTimer(0) // run immediately on startup
+	defer timer.Stop()
+
 LOOP:
 	for {
 		select {
 		case <-d.done:
 			break LOOP
-		default:
+		case <-timer.C:
 			begin := time.Now()
 
 			tasks := d.listTasks()
@@ -202,7 +205,7 @@ LOOP:
 			infof("%s: cluster=%s service=%s forceSingleTask=[%s] disableAgentQuery=%t tasksFound=%d changed=%t elapsed=%v sleeping:%v",
 				me, d.clusterName, d.options.ServiceName, d.options.ForceSingleTask, d.options.DisableAgentQuery, len(tasks), changed, elapsed, d.options.Interval)
 
-			time.Sleep(d.options.Interval)
+			timer.Reset(d.options.Interval)
 		}
 	}
 

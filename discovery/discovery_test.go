@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
@@ -104,6 +105,49 @@ func TestNewDiscoveryModes(t *testing.T) {
 			t.Error("expected healthCheckEnabled to be false")
 		}
 	})
+}
+
+func TestDiscoveryRunStopsQuickly(t *testing.T) {
+	callbackDone := make(chan struct{}, 1)
+
+	d := &Discovery{
+		options: Options{
+			ServiceName: "svc",
+			Interval:    5 * time.Second,
+			Callback: func(_ []Task) {
+				select {
+				case callbackDone <- struct{}{}:
+				default:
+				}
+			},
+			DisableAgentQuery: true,
+			ForceSingleTask:   "127.0.0.1",
+		},
+		clusterName: "cluster",
+		done:        make(chan struct{}),
+	}
+
+	exited := make(chan struct{})
+	go func() {
+		d.run()
+		close(exited)
+	}()
+
+	select {
+	case <-callbackDone:
+		// first poll completed, loop should now be waiting for next interval
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for first discovery cycle")
+	}
+
+	d.Stop()
+
+	select {
+	case <-exited:
+		// exit should be prompt even with long interval
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Discovery.run did not stop quickly")
+	}
 }
 
 const metadata = `{"Cluster":"arn:aws:ecs:us-east-1:111122223333:cluster/demo"}`
