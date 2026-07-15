@@ -150,4 +150,11 @@ func TestDiscoveryRunStopsQuickly(t *testing.T) {
 	}
 }
 
+func TestDiscoveryStopTwice(_ *testing.T) {
+	d := &Discovery{done: make(chan struct{})}
+
+	d.Stop()
+	d.Stop()
+}
+
 const metadata = `{"Cluster":"arn:aws:ecs:us-east-1:111122223333:cluster/demo"}`

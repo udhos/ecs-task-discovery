@@ -13,6 +13,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -25,6 +26,7 @@ type Discovery struct {
 	options            Options
 	clusterName        string
 	done               chan struct{}
+	stopOnce           sync.Once
 	healthCheckEnabled bool
 	httpClient         *http.Client
 }
@@ -163,7 +165,11 @@ func New(options Options) (*Discovery, error) {
 
 // Stop stops discovery to release resources.
 func (d *Discovery) Stop() {
-	close(d.done)
+	d.stopOnce.Do(func() {
+		if d.done != nil {
+			close(d.done)
+		}
+	})
 }
 
 // run runs a Discovery.
