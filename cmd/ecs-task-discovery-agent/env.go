@@ -62,7 +62,7 @@ func envBool(name string, defaultValue bool) bool {
 func envInt64(name string, defaultValue int64) int64 {
 	str := os.Getenv(name)
 	if str != "" {
-		value, errConv := strconv.ParseInt(name, 10, 64)
+		value, errConv := strconv.ParseInt(str, 10, 64)
 		if errConv == nil {
 			infof("%s=[%s] using %s=%v default=%v", name, str, name, value, defaultValue)
 			return value
