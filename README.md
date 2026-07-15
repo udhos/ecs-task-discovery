@@ -65,6 +65,17 @@ Allowed values:
 - `true`: force health checks enabled.
 - `false`: force health checks disabled.
 
+# TODO / REVIEW
+
+Missing tests to improve confidence on ECS task autodiscovery behavior:
+
+- Discovery agent URL precedence in `Discovery.queryAgent()`: verify `Options.AgentURL` > `ECS_TASK_DISCOVERY_AGENT_URL` > default URL.
+- Agent fallback to ECS API in `Discovery.listTasks()`: simulate agent HTTP error and verify `Tasks()` fallback result is used.
+- Health filtering semantics in `filterByHealth()`: verify HEALTHY-only behavior when task definition health check mode resolves to enabled, and pass-through when disabled.
+- Groupcache v2 peer update callback in `groupcachediscovery.New()`: verify `Pool.Set(peers...)` receives expected URLs.
+- Groupcache v3 peer update callback in `groupcachediscovery.New()`: verify `SetPeers()` receives expected peer list and `IsSelf` flag mapping.
+- Address extraction edge cases in `describeTasks()/findAddress()`: verify task attachment parsing and skip behavior when `privateIPv4Address` is missing.
+
 # References
 
 ## ECS Exec Checker
