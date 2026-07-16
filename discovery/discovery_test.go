@@ -17,6 +17,52 @@ type captureTransport struct {
 	requestedURL string
 }
 
+type agentErrorTransport struct{}
+
+func (a *agentErrorTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       io.NopCloser(strings.NewReader("agent failure")),
+		Header:     make(http.Header),
+	}, nil
+}
+
+type mockECSTransport struct {
+	listTasksCalls     int
+	describeTasksCalls int
+}
+
+func (m *mockECSTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	target := req.Header.Get("X-Amz-Target")
+
+	switch {
+	case strings.HasSuffix(target, ".ListTasks"):
+		m.listTasksCalls++
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: io.NopCloser(strings.NewReader(`
+				{"taskArns":["arn:aws:ecs:us-east-1:111122223333:task/demo/abc"]}
+			`)),
+			Header: make(http.Header),
+		}, nil
+	case strings.HasSuffix(target, ".DescribeTasks"):
+		m.describeTasksCalls++
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: io.NopCloser(strings.NewReader(`
+				{"tasks":[{"taskArn":"arn:aws:ecs:us-east-1:111122223333:task/demo/abc","healthStatus":"HEALTHY","lastStatus":"RUNNING","attachments":[{"details":[{"name":"privateIPv4Address","value":"10.0.0.11"}]}]}]}
+			`)),
+			Header: make(http.Header),
+		}, nil
+	default:
+		return &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(strings.NewReader("unexpected target: " + target)),
+			Header:     make(http.Header),
+		}, nil
+	}
+}
+
 func (c *captureTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	c.requestedURL = req.URL.String()
 
@@ -240,6 +286,45 @@ func TestQueryAgentURLPrecedence(t *testing.T) {
 			t.Fatalf("queryAgent() URL mismatch: expected=%q got=%q", expected, transport.requestedURL)
 		}
 	})
+}
+
+func TestListTasksFallsBackToECSWhenAgentFails(t *testing.T) {
+	ecsTransport := &mockECSTransport{}
+	ecsClient := ecs.NewFromConfig(aws.Config{
+		Region: "us-east-1",
+		HTTPClient: &http.Client{
+			Transport: ecsTransport,
+		},
+	})
+
+	d := &Discovery{
+		options: Options{
+			ServiceName: "svc",
+			Client:      ecsClient,
+		},
+		clusterName: "demo",
+		httpClient: &http.Client{
+			Transport: &agentErrorTransport{},
+		},
+	}
+
+	tasks := d.listTasks()
+
+	if ecsTransport.listTasksCalls == 0 {
+		t.Fatal("expected ECS ListTasks to be called after agent failure")
+	}
+
+	if ecsTransport.describeTasksCalls == 0 {
+		t.Fatal("expected ECS DescribeTasks to be called after agent failure")
+	}
+
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task from ECS fallback, got %d", len(tasks))
+	}
+
+	if tasks[0].Address != "10.0.0.11" {
+		t.Fatalf("unexpected fallback task address: %q", tasks[0].Address)
+	}
 }
 
 const metadata = `{"Cluster":"arn:aws:ecs:us-east-1:111122223333:cluster/demo"}`
