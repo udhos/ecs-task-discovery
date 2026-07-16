@@ -94,6 +94,10 @@ type Options struct {
 	TaskDefinitionHasHealthCheck discovery.HealthCheckMode
 }
 
+// findMyAddrFunc is a test seam to allow deterministic local-address injection
+// in unit tests, especially for validating IsSelf mapping in peer callbacks.
+var findMyAddrFunc = FindMyAddr
+
 func buildURL(addr, groupcachePort string) string {
 	return "http://" + addr + groupcachePort
 }
@@ -113,7 +117,7 @@ func New(options Options) (*Discovery, error) {
 
 	const me = "groupcachediscovery.Run: callback"
 
-	myAddr, errAddr := FindMyAddr()
+	myAddr, errAddr := findMyAddrFunc()
 	if errAddr != nil {
 		return nil, errAddr
 	}

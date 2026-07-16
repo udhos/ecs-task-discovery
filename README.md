@@ -67,13 +67,13 @@ Allowed values:
 
 # PRODUCTION READINESS REVIEW
 
-Missing tests to improve confidence on ECS task autodiscovery behavior:
+Tests that improve confidence on ECS task autodiscovery behavior:
 
 1. [x] Discovery agent URL precedence in `Discovery.queryAgent()`: verify `Options.AgentURL` > `ECS_TASK_DISCOVERY_AGENT_URL` > default URL.
 2. [x] Agent fallback to ECS API in `Discovery.listTasks()`: simulate agent HTTP error and verify `Tasks()` fallback result is used.
 3. [x] Health filtering semantics in `filterByHealth()`: verify HEALTHY-only behavior when task definition health check mode resolves to enabled, and pass-through when disabled.
-4. [ ] Groupcache v2 peer update callback in `groupcachediscovery.New()`: verify `Pool.Set(peers...)` receives expected URLs.
-5. [ ] Groupcache v3 peer update callback in `groupcachediscovery.New()`: verify `SetPeers()` receives expected peer list and `IsSelf` flag mapping.
+4. [x] Groupcache v2 peer update callback in `groupcachediscovery.New()`: verify `Pool.Set(peers...)` receives expected URLs.
+5. [x] Groupcache v3 peer update callback in `groupcachediscovery.New()`: verify `SetPeers()` receives expected peer list and `IsSelf` flag mapping.
 6. [x] Address extraction edge cases in `describeTasks()/findAddress()`: verify task attachment parsing and skip behavior when `privateIPv4Address` is missing.
 
 # References
