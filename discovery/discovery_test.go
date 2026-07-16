@@ -327,4 +327,43 @@ func TestListTasksFallsBackToECSWhenAgentFails(t *testing.T) {
 	}
 }
 
+func TestFilterByHealth(t *testing.T) {
+	input := []Task{
+		{ARN: "a", Address: "10.0.0.1", HealthStatus: "HEALTHY", LastStatus: "RUNNING"},
+		{ARN: "b", Address: "10.0.0.2", HealthStatus: "UNHEALTHY", LastStatus: "RUNNING"},
+		{ARN: "c", Address: "10.0.0.3", HealthStatus: "UNKNOWN", LastStatus: "RUNNING"},
+		{ARN: "d", Address: "10.0.0.4", HealthStatus: "", LastStatus: "RUNNING"},
+	}
+
+	t.Run("health-check enabled returns HEALTHY only", func(t *testing.T) {
+		d := &Discovery{healthCheckEnabled: true}
+
+		got := d.filterByHealth(input)
+
+		if len(got) != 1 {
+			t.Fatalf("expected 1 HEALTHY task, got %d", len(got))
+		}
+
+		if got[0].ARN != "a" {
+			t.Fatalf("expected ARN %q, got %q", "a", got[0].ARN)
+		}
+	})
+
+	t.Run("health-check disabled returns all tasks unchanged", func(t *testing.T) {
+		d := &Discovery{healthCheckEnabled: false}
+
+		got := d.filterByHealth(input)
+
+		if len(got) != len(input) {
+			t.Fatalf("expected %d tasks, got %d", len(input), len(got))
+		}
+
+		for i := range input {
+			if got[i] != input[i] {
+				t.Fatalf("task at index %d changed: expected=%+v got=%+v", i, input[i], got[i])
+			}
+		}
+	})
+}
+
 const metadata = `{"Cluster":"arn:aws:ecs:us-east-1:111122223333:cluster/demo"}`
