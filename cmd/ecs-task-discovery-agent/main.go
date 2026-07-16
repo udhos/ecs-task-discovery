@@ -52,6 +52,10 @@ type application struct {
 	groupcacheServer *http.Server
 	cache            *groupcache.Group
 	registry         *prometheus.Registry
+
+	// Test seams for deterministic handler testing without ECS/groupcache runtime wiring.
+	findTasksFunc func(ctx context.Context, serviceName string) ([]byte, error)
+	cacheGetFunc  func(ctx context.Context, serviceName string) ([]byte, error)
 }
 
 func main() {
@@ -174,11 +178,19 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	begin := time.Now()
 
 	if app.groupcacheEnable {
-		err = app.cache.Get(context.TODO(), serviceName,
-			groupcache.AllocatingByteSliceSink(&data), nil)
+		if app.cacheGetFunc != nil {
+			data, err = app.cacheGetFunc(context.TODO(), serviceName)
+		} else {
+			err = app.cache.Get(context.TODO(), serviceName,
+				groupcache.AllocatingByteSliceSink(&data), nil)
+		}
 	} else {
-		data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName,
-			serviceName)
+		if app.findTasksFunc != nil {
+			data, err = app.findTasksFunc(context.TODO(), serviceName)
+		} else {
+			data, err = findTasks(context.TODO(), app.clientEcs, app.clusterName,
+				serviceName)
+		}
 	}
 
 	elapsed := time.Since(begin)
@@ -201,12 +213,15 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// discoveryTasksFunc is a test seam for findTasks().
+var discoveryTasksFunc = discovery.Tasks
+
 func findTasks(ctx context.Context, clientEcs *ecs.Client, clusterName, serviceName string) ([]byte, error) {
 	const me = "findTasks"
 
 	begin := time.Now()
 
-	tasks, err := discovery.Tasks(ctx, clientEcs, clusterName, serviceName)
+	tasks, err := discoveryTasksFunc(ctx, clientEcs, clusterName, serviceName)
 
 	elapsed := time.Since(begin)
 
