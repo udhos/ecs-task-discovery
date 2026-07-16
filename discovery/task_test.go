@@ -3,6 +3,8 @@ package discovery
 import (
 	"context"
 	"errors"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -10,6 +12,28 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
+
+type describeTasksTransport struct {
+	describeTasksBody string
+}
+
+func (d *describeTasksTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	target := req.Header.Get("X-Amz-Target")
+
+	if strings.HasSuffix(target, ".DescribeTasks") {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(d.describeTasksBody)),
+			Header:     make(http.Header),
+		}, nil
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Body:       io.NopCloser(strings.NewReader("unexpected target: " + target)),
+		Header:     make(http.Header),
+	}, nil
+}
 
 type mockECSClient struct {
 	DescribeServicesFunc       func(ctx context.Context, params *ecs.DescribeServicesInput, optFns ...func(*ecs.Options)) (*ecs.DescribeServicesOutput, error)
@@ -267,5 +291,107 @@ func TestIsHealthCheckEnabled(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFindAddress(t *testing.T) {
+	tests := []struct {
+		name        string
+		attachments []types.Attachment
+		expected    string
+	}{
+		{
+			name:        "no attachments",
+			attachments: nil,
+			expected:    "",
+		},
+		{
+			name: "attachments without privateIPv4Address",
+			attachments: []types.Attachment{
+				{
+					Details: []types.KeyValuePair{{Name: aws.String("networkInterfaceId"), Value: aws.String("eni-1")}},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "find privateIPv4Address in second attachment",
+			attachments: []types.Attachment{
+				{
+					Details: []types.KeyValuePair{{Name: aws.String("networkInterfaceId"), Value: aws.String("eni-1")}},
+				},
+				{
+					Details: []types.KeyValuePair{{Name: aws.String("privateIPv4Address"), Value: aws.String("10.0.0.99")}},
+				},
+			},
+			expected: "10.0.0.99",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := findAddress(tt.attachments); got != tt.expected {
+				t.Fatalf("findAddress() mismatch: expected=%q got=%q", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestDescribeTasksSkipsMissingPrivateIPv4Address(t *testing.T) {
+	transport := &describeTasksTransport{
+		describeTasksBody: `
+			{
+				"tasks": [
+					{
+						"taskArn": "arn:aws:ecs:us-east-1:111122223333:task/demo/missing",
+						"healthStatus": "HEALTHY",
+						"lastStatus": "RUNNING",
+						"attachments": [
+							{
+								"details": [
+									{"name": "networkInterfaceId", "value": "eni-missing"}
+								]
+							}
+						]
+					},
+					{
+						"taskArn": "arn:aws:ecs:us-east-1:111122223333:task/demo/ok",
+						"healthStatus": "HEALTHY",
+						"lastStatus": "RUNNING",
+						"attachments": [
+							{
+								"details": [
+									{"name": "privateIPv4Address", "value": "10.0.0.42"}
+								]
+							}
+						]
+					}
+				]
+			}
+		`,
+	}
+
+	client := ecs.NewFromConfig(aws.Config{
+		Region: "us-east-1",
+		HTTPClient: &http.Client{
+			Transport: transport,
+		},
+	})
+
+	got, err := describeTasks(context.Background(), client, "demo", []string{"arn:task:1", "arn:task:2"})
+	if err != nil {
+		t.Fatalf("describeTasks() unexpected error: %v", err)
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("describeTasks() expected 1 task after filtering, got %d", len(got))
+	}
+
+	if got[0].Address != "10.0.0.42" {
+		t.Fatalf("describeTasks() expected surviving task address %q, got %q", "10.0.0.42", got[0].Address)
+	}
+
+	if got[0].ARN != "arn:aws:ecs:us-east-1:111122223333:task/demo/ok" {
+		t.Fatalf("describeTasks() expected surviving ARN %q, got %q", "arn:aws:ecs:us-east-1:111122223333:task/demo/ok", got[0].ARN)
 	}
 }

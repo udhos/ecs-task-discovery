@@ -74,7 +74,7 @@ Missing tests to improve confidence on ECS task autodiscovery behavior:
 3. [x] Health filtering semantics in `filterByHealth()`: verify HEALTHY-only behavior when task definition health check mode resolves to enabled, and pass-through when disabled.
 4. [ ] Groupcache v2 peer update callback in `groupcachediscovery.New()`: verify `Pool.Set(peers...)` receives expected URLs.
 5. [ ] Groupcache v3 peer update callback in `groupcachediscovery.New()`: verify `SetPeers()` receives expected peer list and `IsSelf` flag mapping.
-6. [ ] Address extraction edge cases in `describeTasks()/findAddress()`: verify task attachment parsing and skip behavior when `privateIPv4Address` is missing.
+6. [x] Address extraction edge cases in `describeTasks()/findAddress()`: verify task attachment parsing and skip behavior when `privateIPv4Address` is missing.
 
 # References
 
