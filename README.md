@@ -69,7 +69,7 @@ Allowed values:
 
 Missing tests to improve confidence on ECS task autodiscovery behavior:
 
-1. [ ] Discovery agent URL precedence in `Discovery.queryAgent()`: verify `Options.AgentURL` > `ECS_TASK_DISCOVERY_AGENT_URL` > default URL.
+1. [x] Discovery agent URL precedence in `Discovery.queryAgent()`: verify `Options.AgentURL` > `ECS_TASK_DISCOVERY_AGENT_URL` > default URL.
 2. [ ] Agent fallback to ECS API in `Discovery.listTasks()`: simulate agent HTTP error and verify `Tasks()` fallback result is used.
 3. [ ] Health filtering semantics in `filterByHealth()`: verify HEALTHY-only behavior when task definition health check mode resolves to enabled, and pass-through when disabled.
 4. [ ] Groupcache v2 peer update callback in `groupcachediscovery.New()`: verify `Pool.Set(peers...)` receives expected URLs.

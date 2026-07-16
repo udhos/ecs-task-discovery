@@ -2,14 +2,30 @@ package discovery
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 )
+
+type captureTransport struct {
+	requestedURL string
+}
+
+func (c *captureTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	c.requestedURL = req.URL.String()
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader("[]")),
+		Header:     make(http.Header),
+	}, nil
+}
 
 func TestFindCluster(t *testing.T) {
 
@@ -155,6 +171,75 @@ func TestDiscoveryStopTwice(_ *testing.T) {
 
 	d.Stop()
 	d.Stop()
+}
+
+func TestQueryAgentURLPrecedence(t *testing.T) {
+	t.Run("Options.AgentURL takes precedence over env and default", func(t *testing.T) {
+		t.Setenv(envAgentURL, "http://from-env.example/tasks")
+
+		transport := &captureTransport{}
+		d := &Discovery{
+			options: Options{
+				ServiceName: "svc",
+				AgentURL:    "http://from-options.example/tasks",
+			},
+			clusterName: "demo-cluster",
+			httpClient:  &http.Client{Transport: transport},
+		}
+
+		if _, err := d.queryAgent(); err != nil {
+			t.Fatalf("queryAgent() unexpected error: %v", err)
+		}
+
+		const expected = "http://from-options.example/tasks/svc"
+		if transport.requestedURL != expected {
+			t.Fatalf("queryAgent() URL mismatch: expected=%q got=%q", expected, transport.requestedURL)
+		}
+	})
+
+	t.Run("env takes precedence over default when option is empty", func(t *testing.T) {
+		t.Setenv(envAgentURL, "http://from-env.example/tasks")
+
+		transport := &captureTransport{}
+		d := &Discovery{
+			options: Options{
+				ServiceName: "svc",
+			},
+			clusterName: "demo-cluster",
+			httpClient:  &http.Client{Transport: transport},
+		}
+
+		if _, err := d.queryAgent(); err != nil {
+			t.Fatalf("queryAgent() unexpected error: %v", err)
+		}
+
+		const expected = "http://from-env.example/tasks/svc"
+		if transport.requestedURL != expected {
+			t.Fatalf("queryAgent() URL mismatch: expected=%q got=%q", expected, transport.requestedURL)
+		}
+	})
+
+	t.Run("default is used when option and env are empty", func(t *testing.T) {
+		t.Setenv(envAgentURL, "")
+
+		transport := &captureTransport{}
+		d := &Discovery{
+			options: Options{
+				ServiceName: "svc",
+			},
+			clusterName: "demo-cluster",
+			httpClient:  &http.Client{Transport: transport},
+		}
+
+		if _, err := d.queryAgent(); err != nil {
+			t.Fatalf("queryAgent() unexpected error: %v", err)
+		}
+
+		const expected = "http://ecs-task-discovery-agent.demo-cluster:8080/tasks/svc"
+		if transport.requestedURL != expected {
+			t.Fatalf("queryAgent() URL mismatch: expected=%q got=%q", expected, transport.requestedURL)
+		}
+	})
 }
 
 const metadata = `{"Cluster":"arn:aws:ecs:us-east-1:111122223333:cluster/demo"}`
