@@ -37,8 +37,8 @@ func TestServeHTTPWithoutGroupcacheSuccess(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", res.Code)
 	}
 
-	if got := res.Header().Get("Content-Type"); got != "text/json; charset=utf-8" {
-		t.Fatalf("expected Content-Type=%q, got %q", "text/json; charset=utf-8", got)
+	if got := res.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+		t.Fatalf("expected Content-Type=%q, got %q", "application/json; charset=utf-8", got)
 	}
 
 	if got := res.Header().Get("X-Content-Type-Options"); got != "nosniff" {

@@ -208,7 +208,7 @@ func (app *application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h := w.Header()
 	h.Set("Content-Length", strconv.Itoa(len(data)))
-	h.Set("Content-Type", "text/json; charset=utf-8")
+	h.Set("Content-Type", "application/json; charset=utf-8")
 	h.Set("X-Content-Type-Options", "nosniff")
 	w.Write(data)
 }
